@@ -16,37 +16,18 @@
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; }
         input { padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; width: 100%; box-sizing: border-box; font-family: 'Cairo'; font-size: 16px; margin-bottom: 15px; text-align: center; }
         button { width: 100%; padding: 15px; border: none; border-radius: 12px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
-        
         #resultArea { display: none; margin-top: 10px; animation: fadeIn 0.5s ease; }
         .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
         .amount { font-weight: bold; color: var(--primary); }
         .remaining { font-size: 24px; color: var(--danger); font-weight: 700; }
-        
-        /* تصميم الجرس المهتز */
-        .notif-bell { 
-            position: absolute; top: 15px; right: 15px; 
-            font-size: 26px; cursor: pointer; display: none;
-            animation: ring 1.5s infinite; 
-            background: none; border: none; width: auto; padding: 0;
-            z-index: 10;
-        }
-        @keyframes ring {
-            0% { transform: rotate(0); }
-            10% { transform: rotate(15deg); }
-            20% { transform: rotate(-15deg); }
-            30% { transform: rotate(10deg); }
-            40% { transform: rotate(-10deg); }
-            50% { transform: rotate(0); }
-            100% { transform: rotate(0); }
-        }
-
+        .notif-bell { position: absolute; top: 15px; right: 15px; font-size: 26px; cursor: pointer; display: none; animation: ring 1.5s infinite; background: none; border: none; width: auto; padding: 0; z-index: 10; }
+        @keyframes ring { 0% { transform: rotate(0); } 10% { transform: rotate(15deg); } 20% { transform: rotate(-15deg); } 30% { transform: rotate(10deg); } 40% { transform: rotate(-10deg); } 50% { transform: rotate(0); } 100% { transform: rotate(0); } }
         .progress-container { background: #eee; border-radius: 20px; height: 12px; margin: 15px 0; overflow: hidden; }
         .progress-bar { background: linear-gradient(90deg, #10b981, #34d399); height: 100%; width: 0%; transition: width 1s ease-in-out; }
         .countdown-box { padding: 12px; border-radius: 12px; text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 15px; }
         .status-badge { display: inline-block; padding: 5px 15px; border-radius: 50px; font-size: 14px; font-weight: bold; margin-top: 10px; }
         .paid { background: #d1fae5; color: #065f46; }
         .debt { background: #fee2e2; color: #b91c1c; }
-        
         .payment-list { margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 12px; }
         .p-item { font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 8px; color: #64748b; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -55,54 +36,33 @@
 </head>
 <body>
 
-<div id="loadingOverlay">
-    <div style="text-align: center;">
-        <p style="font-weight: bold; color: var(--primary);">جاري تحميل بياناتك...</p>
-    </div>
-</div>
+<div id="loadingOverlay"><div style="text-align: center;"><p style="font-weight: bold; color: var(--primary);">جاري تحميل بياناتك...</p></div></div>
 
 <div class="container">
-    <header>
-        <h1 style="color: var(--primary); margin-bottom: 5px;">مركز الراشد</h1>
-        <p style="color: #64748b;">نظام متابعة الأقساط للزبائن</p>
-    </header>
-
+    <header><h1 style="color: var(--primary); margin-bottom: 5px;">مركز الراشد</h1><p style="color: #64748b;">نظام متابعة الأقساط للزبائن</p></header>
     <div class="card" id="loginCard">
         <p style="text-align: center; margin-bottom: 20px;">يرجى كتابة اسمك الثلاثي كما مسجل في الوصل</p>
         <input type="text" id="custNameInput" placeholder="اكتب اسمك هنا...">
         <button onclick="checkAccess()">عرض حالة حسابي</button>
         <p id="errorMsg" style="color: var(--danger); text-align: center; margin-top: 10px; display: none; font-size: 14px;">عذراً، الاسم غير موجود في سجلاتنا</p>
     </div>
-
     <div id="resultArea">
         <div class="card">
             <button id="notifBtn" class="notif-bell" onclick="requestPermission()">🔔</button>
-            
             <h2 id="displayName" style="margin-top: 0; color: var(--primary); text-align: center; padding-top: 10px;"></h2>
-            
             <div id="countdownArea"></div>
             <div id="statusBadgeContainer" style="text-align: center;"></div>
-            
             <div style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: var(--primary);">
-                    <span>نسبة تسديد المبلغ</span>
-                    <span id="percentText">0%</span>
-                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: var(--primary);"><span>نسبة تسديد المبلغ</span><span id="percentText">0%</span></div>
                 <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
             </div>
-
             <div style="margin-top: 15px;">
                 <div class="info-row"><span>نوع الجهاز:</span> <span id="displayModel" class="amount"></span></div>
                 <div class="info-row"><span>السعر الكلي:</span> <span id="displayTotal" class="amount"></span></div>
                 <div class="info-row" style="border:none;"><span>المبلغ المتبقي بذمتك:</span></div>
                 <div style="text-align: center;" id="displayRemaining" class="remaining"></div>
             </div>
-
-            <div class="payment-list">
-                <p style="margin-top: 0; font-weight: bold; color: #475569; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px;">سجل مدفوعاتك:</p>
-                <div id="displayPayments"></div>
-            </div>
-            
+            <div class="payment-list"><p style="margin-top: 0; font-weight: bold; color: #475569; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px;">سجل مدفوعاتك:</p><div id="displayPayments"></div></div>
             <button onclick="location.href='index.html'" style="margin-top: 20px; background: #64748b;">خروج</button>
         </div>
     </div>
@@ -124,36 +84,12 @@
 
     function formatNum(n) { return Number(n).toLocaleString() + " د.ع"; }
 
-    // وظيفة إرسال الإشعار المرتب (باستخدام Service Worker)
-    async function sendThankYouNotification() {
-        if ('serviceWorker' in navigator) {
-            try {
-                const reg = await navigator.serviceWorker.register('sw.js');
-                if (Notification.permission === "granted") {
-                    const options = {
-                        body: "زبوننا العزيز.. تم تفعيل التنبيهات بنجاح ✅\nسنقوم بتذكيرك بموعد قسطك القادم لضمان راحتك.",
-                        icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
-                        badge: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
-                        vibrate: [200, 100, 200],
-                        dir: "rtl",
-                        tag: "welcome-alrashed"
-                    };
-                    reg.showNotification('مركز الراشد للاتصالات 📱', options);
-                    document.getElementById('notifBtn').style.display = 'none';
-                }
-            } catch (e) { console.error("SW Error:", e); }
-        }
-    }
-
-    function requestPermission() {
-        if (!("Notification" in window)) return;
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") sendThankYouNotification();
-        });
-    }
-
+    // تنبيه الإدارة فور دخول الزبون (التعديل هنا)
     function notifyAdmin(userName) {
-        db.ref('lastVisit').set({ name: userName, time: Date.now() });
+        db.ref('lastVisit').set({ 
+            name: userName, 
+            time: Date.now() // إرسال الوقت بدقة لإطلاق الصوت في الكمبيوتر
+        });
     }
 
     function checkAutoLogin() {
@@ -164,7 +100,10 @@
             db.ref('installments/' + userId).once('value', (snap) => {
                 const user = snap.val();
                 document.getElementById('loadingOverlay').style.display = 'none';
-                if (user) { notifyAdmin(user.name); showData(user); }
+                if (user) { 
+                    notifyAdmin(user.name); // تنبيه فوري عند استخدام الرابط المباشر
+                    showData(user); 
+                }
             });
         }
     }
@@ -178,7 +117,10 @@
             for(let id in data) {
                 if(data[id].name.trim() === nameInput) { foundUser = data[id]; break; }
             }
-            if(foundUser) { notifyAdmin(foundUser.name); showData(foundUser); }
+            if(foundUser) { 
+                notifyAdmin(foundUser.name); // تنبيه فوري عند تسجيل الدخول اليدوي
+                showData(foundUser); 
+            }
             else { document.getElementById('errorMsg').style.display = 'block'; }
         });
     }
@@ -190,16 +132,6 @@
         document.getElementById('displayModel').innerText = user.model || "غير محدد";
         document.getElementById('displayTotal').innerText = formatNum(user.total);
         
-        if ("Notification" in window && Notification.permission !== "granted") {
-            document.getElementById('notifBtn').style.display = 'block';
-        }
-
-        setTimeout(() => {
-            if ("Notification" in window && Notification.permission === "default") {
-                requestPermission();
-            }
-        }, 5000);
-
         let paid = 0;
         const payList = document.getElementById('displayPayments');
         payList.innerHTML = '';
@@ -209,7 +141,6 @@
                 payList.innerHTML += `<div class="p-item"><span>تم دفع: ${formatNum(p.amount)}</span><span>بتاريخ: ${p.date.split('|')[0]}</span></div>`;
             });
         }
-
         const rem = Math.max(0, user.total - paid);
         document.getElementById('displayRemaining').innerText = formatNum(rem);
         const percent = Math.min(100, Math.round((paid / user.total) * 100));
@@ -222,7 +153,6 @@
         if(rem <= 0) {
             badge.innerHTML = '<span class="status-badge paid">✅ تم تسديد الحساب بالكامل</span>';
             countdown.innerHTML = '';
-            document.getElementById('notifBtn').style.display = 'none';
         } else {
             badge.innerHTML = '<span class="status-badge debt">⚠️ بانتظار تسديد المتبقي</span>';
             if(user.nextDueDate) {
