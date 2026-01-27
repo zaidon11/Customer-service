@@ -22,12 +22,13 @@
         .amount { font-weight: bold; color: var(--primary); }
         .remaining { font-size: 24px; color: var(--danger); font-weight: 700; }
         
-        /* تصميم الجرس المهتز */
+        /* الجرس المهتز */
         .notif-bell { 
             position: absolute; top: 15px; right: 15px; 
-            font-size: 24px; cursor: pointer; display: none;
+            font-size: 26px; cursor: pointer; display: none;
             animation: ring 1.5s infinite; 
             background: none; border: none; width: auto; padding: 0;
+            z-index: 10;
         }
         @keyframes ring {
             0% { transform: rotate(0); }
@@ -75,7 +76,7 @@
 
     <div id="resultArea">
         <div class="card">
-            <button id="notifBtn" class="notif-bell" onclick="requestPermission()" title="تفعيل التنبيهات">🔔</button>
+            <button id="notifBtn" class="notif-bell" onclick="requestPermission()">🔔</button>
             
             <h2 id="displayName" style="margin-top: 0; color: var(--primary); text-align: center; padding-top: 10px;"></h2>
             
@@ -123,25 +124,41 @@
 
     function formatNum(n) { return Number(n).toLocaleString() + " د.ع"; }
 
+    // إرسال إشعار الشكر
     function sendThankYouNotification() {
         if (Notification.permission === "granted") {
+            const title = "مركز الراشد للاتصالات 📱";
+            const options = {
+                body: "شكراً لثقتك بنا.. تم تفعيل التنبيهات بنجاح. سنقوم بتذكيرك بموعد قسطك القادم.",
+                icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
+                badge: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
+                dir: "rtl",
+                tag: "welcome-msg" // لمنع التكرار
+            };
+
             try {
-                new Notification("مركز الراشد للاتصالات 📱", {
-                    body: "شكراً لثقتك بنا.. تم تفعيل التنبيهات بنجاح. سنقوم بتذكيرك بموعد قسطك القادم.",
-                    icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png"
-                });
-            } catch (e) { console.log("Notification error"); }
-            document.getElementById('notifBtn').style.display = 'none';
+                const notif = new Notification(title, options);
+                notif.onclick = () => { window.focus(); notif.close(); };
+                // إخفاء الزر فوراً بعد الإشعار
+                document.getElementById('notifBtn').style.display = 'none';
+            } catch (e) {
+                console.log("Error showing notification");
+                document.getElementById('notifBtn').style.display = 'none';
+            }
         }
     }
 
+    // طلب الإذن
     function requestPermission() {
-        if (!("Notification" in window)) return;
+        if (!("Notification" in window)) {
+            alert("متصفحك لا يدعم التنبيهات");
+            return;
+        }
         Notification.requestPermission().then(permission => {
             if (permission === "granted") {
                 sendThankYouNotification();
-            } else {
-                alert("يرجى السماح بالإشعارات من إعدادات المتصفح");
+            } else if (permission === "denied") {
+                alert("يرجى تفعيل الإشعارات من إعدادات المتصفح (قفل العنوان) لتصلك التنبيهات.");
             }
         });
     }
@@ -158,10 +175,7 @@
             db.ref('installments/' + userId).once('value', (snap) => {
                 const user = snap.val();
                 document.getElementById('loadingOverlay').style.display = 'none';
-                if (user) {
-                    notifyAdmin(user.name);
-                    showData(user);
-                }
+                if (user) { notifyAdmin(user.name); showData(user); }
             });
         }
     }
@@ -187,12 +201,12 @@
         document.getElementById('displayModel').innerText = user.model || "غير محدد";
         document.getElementById('displayTotal').innerText = formatNum(user.total);
         
-        // إظهار الجرس المهتز إذا لم يتم التفعيل
+        // إظهار الجرس إذا لم يتم منح الإذن
         if ("Notification" in window && Notification.permission !== "granted") {
             document.getElementById('notifBtn').style.display = 'block';
         }
 
-        // طلب تلقائي بعد 5 ثوانٍ
+        // الطلب التلقائي بعد 5 ثوانٍ
         setTimeout(() => {
             if ("Notification" in window && Notification.permission === "default") {
                 requestPermission();
