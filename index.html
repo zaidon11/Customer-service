@@ -31,7 +31,8 @@
         .debt { background: #fee2e2; color: #b91c1c; }
         .near { background: #fef3c7; color: #92400e; }
         
-        .btn-notif { background: var(--warning); color: white; font-size: 14px; padding: 10px; margin-top: 10px; display: none; }
+        /* زر التنبيهات */
+        .btn-notif { background: var(--warning); color: white; margin-top: 15px; display: none; }
         
         .payment-list { margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 12px; }
         .p-item { font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 8px; color: #64748b; }
@@ -69,8 +70,8 @@
 
             <div id="statusBadgeContainer" style="text-align: center;"></div>
             
-            <button id="notifBtn" class="btn-notif" onclick="manualRequestNotif()">🔔 تفعيل تنبيهات موعد القسط</button>
-            
+            <button id="notifBtn" class="btn-notif" onclick="requestPermission()">🔔 تفعيل تنبيهات الأقساط على الموبايل</button>
+
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: var(--primary);">
                     <span>نسبة تسديد المبلغ</span>
@@ -112,45 +113,39 @@
 
     function formatNum(n) { return Number(n).toLocaleString() + " د.ع"; }
 
-    // --- وظيفة إرسال الإشعار الترحيبي ---
-    function sendWelcomeNotification() {
+    // --- ميزة التنبيهات الجديدة ---
+    function sendThankYouNotification() {
         if (Notification.permission === "granted") {
-            const options = {
+            new Notification("مركز الراشد للاتصالات 📱", {
                 body: "شكراً لثقتك بنا زبوننا العزيز.. تم تفعيل التنبيهات بنجاح. سنقوم بتذكيرك بموعد أقساطك القادمة لضمان راحتك.",
-                icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png", // أيقونة بسيطة للجهاز
-                dir: "rtl"
-            };
-            new Notification("مركز الراشد للاتصالات 📱", options);
+                icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png"
+            });
+            // إخفاء الزر بعد الموافقة
+            document.getElementById('notifBtn').style.display = 'none';
         }
     }
 
-    function manualRequestNotif() {
-        if (!("Notification" in window)) return alert("متصفحك لا يدعم التنبيهات");
+    function requestPermission() {
+        if (!("Notification" in window)) return;
         Notification.requestPermission().then(permission => {
             if (permission === "granted") {
-                sendWelcomeNotification(); // إرسال الإشعار فور الموافقة
-                document.getElementById('notifBtn').style.display = 'none';
+                sendThankYouNotification();
             }
         });
     }
-
-    function autoAskPermission() {
-        if ("Notification" in window && Notification.permission === "default") {
-            setTimeout(() => {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") sendWelcomeNotification();
-                });
-            }, 5000);
-        }
-    }
+    // ----------------------------
 
     function notifyAdmin(userName) {
-        db.ref('lastVisit').set({ name: userName, time: Date.now() });
+        db.ref('lastVisit').set({
+            name: userName,
+            time: Date.now()
+        });
     }
 
     function checkAutoLogin() {
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('id');
+
         if (userId) {
             document.getElementById('loadingOverlay').style.display = 'flex';
             db.ref('installments/' + userId).once('value', (snap) => {
@@ -159,7 +154,6 @@
                 if (user) {
                     notifyAdmin(user.name);
                     showData(user);
-                    autoAskPermission();
                 }
             });
         }
@@ -167,19 +161,23 @@
 
     function checkAccess() {
         const nameInput = document.getElementById('custNameInput').value.trim();
+        const errorMsg = document.getElementById('errorMsg');
         if(!nameInput) return;
+
         db.ref('installments').once('value', (snap) => {
             const data = snap.val();
             let foundUser = null;
             for(let id in data) {
-                if(data[id].name.trim() === nameInput) { foundUser = data[id]; break; }
+                if(data[id].name.trim() === nameInput) {
+                    foundUser = data[id];
+                    break;
+                }
             }
             if(foundUser) {
                 notifyAdmin(foundUser.name);
                 showData(foundUser);
-                autoAskPermission();
             } else {
-                document.getElementById('errorMsg').style.display = 'block';
+                errorMsg.style.display = 'block';
             }
         });
     }
@@ -191,9 +189,17 @@
         document.getElementById('displayModel').innerText = user.model || "غير محدد";
         document.getElementById('displayTotal').innerText = formatNum(user.total);
         
+        // إظهار الزر من البداية إذا لم يتم منح الإذن
         if ("Notification" in window && Notification.permission !== "granted") {
             document.getElementById('notifBtn').style.display = 'block';
         }
+
+        // طلب الإذن تلقائياً بعد 5 ثوانٍ من ظهور البيانات
+        setTimeout(() => {
+            if ("Notification" in window && Notification.permission === "default") {
+                requestPermission();
+            }
+        }, 5000);
 
         let paid = 0;
         const payList = document.getElementById('displayPayments');
@@ -207,6 +213,7 @@
 
         const rem = Math.max(0, user.total - paid);
         document.getElementById('displayRemaining').innerText = formatNum(rem);
+        
         const percent = Math.min(100, Math.round((paid / user.total) * 100));
         document.getElementById('progressBar').style.width = percent + "%";
         document.getElementById('percentText').innerText = percent + "%";
@@ -223,9 +230,13 @@
             if(user.nextDueDate) {
                 const diff = user.nextDueDate - Date.now();
                 const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                if(days > 7) countdown.innerHTML = `<div class="countdown-box debt" style="background:#d1fae5; color:#065f46;">⏳ متبقي على موعد قسطك القادم: ${days} يوم</div>`;
-                else if (days > 0) countdown.innerHTML = `<div class="countdown-box near" style="background:#fef3c7; color:#92400e;">⚠️ موعد القسط قريب جداً: باقي ${days} يوم</div>`;
-                else countdown.innerHTML = `<div class="countdown-box debt" style="background:#fee2e2; color:#b91c1c;">🚨 متأخر عن موعد التسديد بـ ${Math.abs(days)} يوم!</div>`;
+                if(days > 7) {
+                    countdown.innerHTML = `<div class="countdown-box debt" style="background:#d1fae5; color:#065f46;">⏳ متبقي على موعد قسطك القادم: ${days} يوم</div>`;
+                } else if (days > 0) {
+                    countdown.innerHTML = `<div class="countdown-box near" style="background:#fef3c7; color:#92400e;">⚠️ موعد القسط قريب جداً: باقي ${days} يوم</div>`;
+                } else {
+                    countdown.innerHTML = `<div class="countdown-box debt" style="background:#fee2e2; color:#b91c1c;">🚨 متأخر عن موعد التسديد بـ ${Math.abs(days)} يوم!</div>`;
+                }
             }
         }
     }
