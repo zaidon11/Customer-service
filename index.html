@@ -2,57 +2,65 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>اختبار الإشعارات - مركز الراشد</title>
+    <title>اختبار الإشعارات النهائي - مركز الراشد</title>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 50px; background: #f4f7f9; }
-        .test-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: inline-block; }
-        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #1c4587; color: white; border: none; border-radius: 10px; }
-        .status { margin-top: 20px; font-weight: bold; color: #ef4444; }
+        .test-card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: inline-block; max-width: 400px; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #1c4587; color: white; border: none; border-radius: 10px; width: 100%; }
+        .status { margin-top: 20px; font-weight: bold; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="test-card">
-    <h2>اختبار نظام إشعارات الموبايل</h2>
-    <p>اضغط على الزر أدناه لتفعيل واختبار الإشعار</p>
-    <button onclick="runTest()">اضغط هنا للاختبار</button>
-    <div id="status" class="status"></div>
+    <h2>اختبار الإشعارات (المطور)</h2>
+    <p>هذا الاختبار يستخدم الـ Service Worker لحل المشكلة التي ظهرت في الصورة.</p>
+    <button onclick="requestAndShow()">تفعيل وإرسال إشعار</button>
+    <div id="status" class="status">بانتظار الضغط على الزر...</div>
 </div>
 
 <script>
-    function runTest() {
+    async function requestAndShow() {
         const statusDiv = document.getElementById('status');
+        statusDiv.style.color = "blue";
+        statusDiv.innerText = "جاري طلب الإذن وتسجيل النظام...";
+
+        // 1. طلب إذن التنبيهات
+        const permission = await Notification.requestPermission();
         
-        if (!("Notification" in window)) {
-            statusDiv.innerText = "هذا المتصفح لا يدعم الإشعارات نهائياً";
+        if (permission !== 'granted') {
+            statusDiv.style.color = "red";
+            statusDiv.innerText = "تم رفض الإذن. يرجى السماح من إعدادات المتصفح.";
             return;
         }
 
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
+        // 2. التحقق من وجود ملف sw.js وتشغيله
+        if ('serviceWorker' in navigator) {
+            try {
+                const reg = await navigator.serviceWorker.register('sw.js');
                 statusDiv.style.color = "green";
-                statusDiv.innerText = "تم منح الإذن! انتظر الإشعار...";
+                statusDiv.innerText = "تم التسجيل بنجاح! جاري إرسال الإشعار...";
+
+                // 3. إرسال الإشعار باستخدام الطريقة التي طلبها الأندرويد
+                const options = {
+                    body: "شكراً لثقتك بمركز الراشد.. تم تفعيل النظام بنجاح ✅",
+                    icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
+                    badge: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
+                    dir: "rtl",
+                    vibrate: [100, 50, 100] // اهتزاز بسيط للموبايل
+                };
+
+                // إظهار الإشعار فوراً
+                await reg.showNotification('مركز الراشد للاتصالات 📱', options);
                 
-                // إرسال الإشعار
-                try {
-                    const options = {
-                        body: "هذا إشعار تجريبي من مركز الراشد. إذا رأيت هذا، فنظامك جاهز!",
-                        icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
-                        requireInteraction: true // يجعل الإشعار يبقى حتى يغلقه المستخدم
-                    };
-                    const n = new Notification("اختبار بنجاح ✅", options);
-                    
-                    n.onclick = function() {
-                        alert("تم الضغط على الإشعار!");
-                    };
-                } catch (e) {
-                    statusDiv.style.color = "red";
-                    statusDiv.innerText = "حدث خطأ أثناء إرسال الإشعار: " + e.message;
-                }
-            } else {
-                statusDiv.innerText = "تم رفض الإذن. يرجى تفعيله من إعدادات المتصفح بجانب رابط الموقع.";
+            } catch (err) {
+                statusDiv.style.color = "red";
+                statusDiv.innerText = "فشل تسجيل sw.js: " + err.message;
             }
-        });
+        } else {
+            statusDiv.style.color = "red";
+            statusDiv.innerText = "متصفحك قديم جداً ولا يدعم التقنيات الحديثة.";
+        }
     }
 </script>
 
