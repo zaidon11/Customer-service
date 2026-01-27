@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مركز الراشد - استعلام الزبائن</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root { --primary: #1c4587; --success: #10b981; --danger: #ef4444; --bg: #f4f7f9; }
+        body { font-family: 'Cairo', sans-serif; background-color: var(--bg); margin: 0; padding: 20px; direction: rtl; }
+        .container { max-width: 500px; margin: 50px auto; }
+        header { text-align: center; margin-bottom: 30px; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        input { padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; width: 100%; box-sizing: border-box; font-family: 'Cairo'; font-size: 16px; margin-bottom: 15px; text-align: center; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 12px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        button:hover { opacity: 0.9; }
+        
+        #resultArea { display: none; margin-top: 20px; animation: fadeIn 0.5s ease; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+        .amount { font-weight: bold; color: var(--primary); }
+        .remaining { font-size: 24px; color: var(--danger); font-weight: 700; }
+        .status-badge { display: inline-block; padding: 5px 15px; border-radius: 50px; font-size: 14px; font-weight: bold; margin-top: 10px; }
+        .paid { background: #d1fae5; color: #065f46; }
+        .debt { background: #fee2e2; color: #b91c1c; }
+        
+        .payment-list { margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 12px; }
+        .p-item { font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 8px; color: #64748b; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1 style="color: var(--primary); margin-bottom: 5px;">مركز الراشد</h1>
+        <p style="color: #64748b;">نظام متابعة الأقساط للزبائن</p>
+    </header>
+
+    <div class="card" id="loginCard">
+        <p style="text-align: center; margin-bottom: 20px;">يرجى كتابة اسمك الثلاثي كما مسجل في الوصل</p>
+        <input type="text" id="custNameInput" placeholder="اكتب اسمك هنا...">
+        <button onclick="checkAccess()">عرض حالة حسابي</button>
+        <p id="errorMsg" style="color: var(--danger); text-align: center; margin-top: 10px; display: none; font-size: 14px;">عذراً، الاسم غير موجود في سجلاتنا</p>
+    </div>
+
+    <div id="resultArea">
+        <div class="card">
+            <h2 id="displayName" style="margin-top: 0; color: var(--primary); text-align: center;"></h2>
+            <div id="statusBadgeContainer" style="text-align: center;"></div>
+            
+            <div style="margin-top: 25px;">
+                <div class="info-row"><span>نوع الجهاز:</span> <span id="displayModel" class="amount"></span></div>
+                <div class="info-row"><span>السعر الكلي:</span> <span id="displayTotal" class="amount"></span></div>
+                <div class="info-row" style="border:none;"><span>المبلغ المتبقي بذمتك:</span></div>
+                <div style="text-align: center;" id="displayRemaining" class="remaining"></div>
+            </div>
+
+            <div class="payment-list">
+                <p style="margin-top: 0; font-weight: bold; color: #475569; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px;">سجل مدفوعاتك:</p>
+                <div id="displayPayments"></div>
+            </div>
+            
+            <button onclick="location.reload()" style="margin-top: 20px; background: #64748b;">خروج</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // استخدم نفس إعدادات Firebase الخاصة بك
+    const firebaseConfig = {
+        apiKey: "AIzaSyBpt495yhuoTbjunCLIFCF_8c1NesxZHWs",
+        authDomain: "shopweb-3466b.firebaseapp.com",
+        databaseURL: "https://shopweb-3466b-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "shopweb-3466b",
+        storageBucket: "shopweb-3466b.firebasestorage.app",
+        messagingSenderId: "41811528812",
+        appId: "1:41811528812:web:618f240f8106f218a8dc49"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function formatNum(n) { return Number(n).toLocaleString() + " د.ع"; }
+
+    function checkAccess() {
+        const nameInput = document.getElementById('custNameInput').value.trim();
+        const errorMsg = document.getElementById('errorMsg');
+        
+        if(!nameInput) return;
+
+        db.ref('installments').once('value', (snap) => {
+            const data = snap.val();
+            let foundUser = null;
+
+            for(let id in data) {
+                if(data[id].name.trim() === nameInput) {
+                    foundUser = data[id];
+                    break;
+                }
+            }
+
+            if(foundUser) {
+                showData(foundUser);
+            } else {
+                errorMsg.style.display = 'block';
+            }
+        });
+    }
+
+    function showData(user) {
+        document.getElementById('loginCard').style.display = 'none';
+        document.getElementById('resultArea').style.display = 'block';
+
+        document.getElementById('displayName').innerText = user.name;
+        document.getElementById('displayModel').innerText = user.model || "غير محدد";
+        document.getElementById('displayTotal').innerText = formatNum(user.total);
+        
+        let paid = 0;
+        const payList = document.getElementById('displayPayments');
+        payList.innerHTML = '';
+
+        if(user.payments) {
+            user.payments.forEach(p => {
+                paid += p.amount;
+                payList.innerHTML += `
+                    <div class="p-item">
+                        <span>تم دفع: ${formatNum(p.amount)}</span>
+                        <span>بتاريخ: ${p.date.split('|')[0]}</span>
+                    </div>`;
+            });
+        }
+
+        const rem = Math.max(0, user.total - paid);
+        document.getElementById('displayRemaining').innerText = formatNum(rem);
+        
+        const badge = document.getElementById('statusBadgeContainer');
+        if(rem <= 0) {
+            badge.innerHTML = '<span class="status-badge paid">✅ تم تسديد الحساب بالكامل</span>';
+        } else {
+            badge.innerHTML = '<span class="status-badge debt">⚠️ بانتظار تسديد المتبقي</span>';
+        }
+    }
+</script>
+</body>
+</html>
