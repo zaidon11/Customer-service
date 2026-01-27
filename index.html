@@ -13,31 +13,42 @@
         body { font-family: 'Cairo', sans-serif; background-color: var(--bg); margin: 0; padding: 20px; direction: rtl; }
         .container { max-width: 500px; margin: 20px auto; }
         header { text-align: center; margin-bottom: 20px; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; }
         input { padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; width: 100%; box-sizing: border-box; font-family: 'Cairo'; font-size: 16px; margin-bottom: 15px; text-align: center; }
         button { width: 100%; padding: 15px; border: none; border-radius: 12px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
-        button:hover { opacity: 0.9; }
         
         #resultArea { display: none; margin-top: 10px; animation: fadeIn 0.5s ease; }
         .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
         .amount { font-weight: bold; color: var(--primary); }
         .remaining { font-size: 24px; color: var(--danger); font-weight: 700; }
         
+        /* تصميم الجرس المهتز */
+        .notif-bell { 
+            position: absolute; top: 15px; right: 15px; 
+            font-size: 24px; cursor: pointer; display: none;
+            animation: ring 1.5s infinite; 
+            background: none; border: none; width: auto; padding: 0;
+        }
+        @keyframes ring {
+            0% { transform: rotate(0); }
+            10% { transform: rotate(15deg); }
+            20% { transform: rotate(-15deg); }
+            30% { transform: rotate(10deg); }
+            40% { transform: rotate(-10deg); }
+            50% { transform: rotate(0); }
+            100% { transform: rotate(0); }
+        }
+
         .progress-container { background: #eee; border-radius: 20px; height: 12px; margin: 15px 0; overflow: hidden; }
         .progress-bar { background: linear-gradient(90deg, #10b981, #34d399); height: 100%; width: 0%; transition: width 1s ease-in-out; }
         .countdown-box { padding: 12px; border-radius: 12px; text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 15px; }
         .status-badge { display: inline-block; padding: 5px 15px; border-radius: 50px; font-size: 14px; font-weight: bold; margin-top: 10px; }
         .paid { background: #d1fae5; color: #065f46; }
         .debt { background: #fee2e2; color: #b91c1c; }
-        .near { background: #fef3c7; color: #92400e; }
-        
-        /* زر التنبيهات */
-        .btn-notif { background: var(--warning); color: white; margin-top: 15px; display: none; }
         
         .payment-list { margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 12px; }
         .p-item { font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 8px; color: #64748b; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; display: none; }
     </style>
 </head>
@@ -64,14 +75,13 @@
 
     <div id="resultArea">
         <div class="card">
-            <h2 id="displayName" style="margin-top: 0; color: var(--primary); text-align: center;"></h2>
+            <button id="notifBtn" class="notif-bell" onclick="requestPermission()" title="تفعيل التنبيهات">🔔</button>
+            
+            <h2 id="displayName" style="margin-top: 0; color: var(--primary); text-align: center; padding-top: 10px;"></h2>
             
             <div id="countdownArea"></div>
-
             <div id="statusBadgeContainer" style="text-align: center;"></div>
             
-            <button id="notifBtn" class="btn-notif" onclick="requestPermission()">🔔 تفعيل تنبيهات الأقساط على الموبايل</button>
-
             <div style="margin-top: 20px;">
                 <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: var(--primary);">
                     <span>نسبة تسديد المبلغ</span>
@@ -113,14 +123,14 @@
 
     function formatNum(n) { return Number(n).toLocaleString() + " د.ع"; }
 
-    // --- ميزة التنبيهات الجديدة ---
     function sendThankYouNotification() {
         if (Notification.permission === "granted") {
-            new Notification("مركز الراشد للاتصالات 📱", {
-                body: "شكراً لثقتك بنا زبوننا العزيز.. تم تفعيل التنبيهات بنجاح. سنقوم بتذكيرك بموعد أقساطك القادمة لضمان راحتك.",
-                icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png"
-            });
-            // إخفاء الزر بعد الموافقة
+            try {
+                new Notification("مركز الراشد للاتصالات 📱", {
+                    body: "شكراً لثقتك بنا.. تم تفعيل التنبيهات بنجاح. سنقوم بتذكيرك بموعد قسطك القادم.",
+                    icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png"
+                });
+            } catch (e) { console.log("Notification error"); }
             document.getElementById('notifBtn').style.display = 'none';
         }
     }
@@ -130,22 +140,19 @@
         Notification.requestPermission().then(permission => {
             if (permission === "granted") {
                 sendThankYouNotification();
+            } else {
+                alert("يرجى السماح بالإشعارات من إعدادات المتصفح");
             }
         });
     }
-    // ----------------------------
 
     function notifyAdmin(userName) {
-        db.ref('lastVisit').set({
-            name: userName,
-            time: Date.now()
-        });
+        db.ref('lastVisit').set({ name: userName, time: Date.now() });
     }
 
     function checkAutoLogin() {
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('id');
-
         if (userId) {
             document.getElementById('loadingOverlay').style.display = 'flex';
             db.ref('installments/' + userId).once('value', (snap) => {
@@ -161,24 +168,15 @@
 
     function checkAccess() {
         const nameInput = document.getElementById('custNameInput').value.trim();
-        const errorMsg = document.getElementById('errorMsg');
         if(!nameInput) return;
-
         db.ref('installments').once('value', (snap) => {
             const data = snap.val();
             let foundUser = null;
             for(let id in data) {
-                if(data[id].name.trim() === nameInput) {
-                    foundUser = data[id];
-                    break;
-                }
+                if(data[id].name.trim() === nameInput) { foundUser = data[id]; break; }
             }
-            if(foundUser) {
-                notifyAdmin(foundUser.name);
-                showData(foundUser);
-            } else {
-                errorMsg.style.display = 'block';
-            }
+            if(foundUser) { notifyAdmin(foundUser.name); showData(foundUser); }
+            else { document.getElementById('errorMsg').style.display = 'block'; }
         });
     }
 
@@ -189,12 +187,12 @@
         document.getElementById('displayModel').innerText = user.model || "غير محدد";
         document.getElementById('displayTotal').innerText = formatNum(user.total);
         
-        // إظهار الزر من البداية إذا لم يتم منح الإذن
+        // إظهار الجرس المهتز إذا لم يتم التفعيل
         if ("Notification" in window && Notification.permission !== "granted") {
             document.getElementById('notifBtn').style.display = 'block';
         }
 
-        // طلب الإذن تلقائياً بعد 5 ثوانٍ من ظهور البيانات
+        // طلب تلقائي بعد 5 ثوانٍ
         setTimeout(() => {
             if ("Notification" in window && Notification.permission === "default") {
                 requestPermission();
@@ -213,7 +211,6 @@
 
         const rem = Math.max(0, user.total - paid);
         document.getElementById('displayRemaining').innerText = formatNum(rem);
-        
         const percent = Math.min(100, Math.round((paid / user.total) * 100));
         document.getElementById('progressBar').style.width = percent + "%";
         document.getElementById('percentText').innerText = percent + "%";
@@ -230,17 +227,12 @@
             if(user.nextDueDate) {
                 const diff = user.nextDueDate - Date.now();
                 const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                if(days > 7) {
-                    countdown.innerHTML = `<div class="countdown-box debt" style="background:#d1fae5; color:#065f46;">⏳ متبقي على موعد قسطك القادم: ${days} يوم</div>`;
-                } else if (days > 0) {
-                    countdown.innerHTML = `<div class="countdown-box near" style="background:#fef3c7; color:#92400e;">⚠️ موعد القسط قريب جداً: باقي ${days} يوم</div>`;
-                } else {
-                    countdown.innerHTML = `<div class="countdown-box debt" style="background:#fee2e2; color:#b91c1c;">🚨 متأخر عن موعد التسديد بـ ${Math.abs(days)} يوم!</div>`;
-                }
+                if(days > 7) countdown.innerHTML = `<div class="countdown-box debt" style="background:#d1fae5; color:#065f46;">⏳ متبقي على موعد قسطك القادم: ${days} يوم</div>`;
+                else if (days > 0) countdown.innerHTML = `<div class="countdown-box near" style="background:#fef3c7; color:#92400e;">⚠️ موعد القسط قريب جداً: باقي ${days} يوم</div>`;
+                else countdown.innerHTML = `<div class="countdown-box debt" style="background:#fee2e2; color:#b91c1c;">🚨 متأخر عن موعد التسديد بـ ${Math.abs(days)} يوم!</div>`;
             }
         }
     }
-
     window.onload = checkAutoLogin;
 </script>
 </body>
