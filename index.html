@@ -84,12 +84,40 @@
 
     function formatNum(n) { return Number(n).toLocaleString() + " د.ع"; }
 
-    // تنبيه الإدارة فور دخول الزبون (التعديل هنا)
     function notifyAdmin(userName) {
+        if(!userName) return;
         db.ref('lastVisit').set({ 
             name: userName, 
-            time: Date.now() // إرسال الوقت بدقة لإطلاق الصوت في الكمبيوتر
-        });
+            time: firebase.database.ServerValue.TIMESTAMP 
+        }).catch(e => console.error("Firebase Error:", e));
+    }
+
+    // دالة طلب الإذن وإرسال إشعار الشكر فوراً (المعدلة)
+    async function requestPermission() {
+        if (!("Notification" in window)) return;
+        
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+            document.getElementById('notifBtn').style.display = 'none';
+            
+            // تسجيل الـ Service Worker لإرسال الإشعار
+            if ('serviceWorker' in navigator) {
+                try {
+                    const reg = await navigator.serviceWorker.register('sw.js');
+                    await navigator.serviceWorker.ready;
+                    
+                    // إرسال إشعار الشكر
+                    reg.showNotification('مركز الراشد للاتصالات 📱', {
+                        body: "تم تفعيل التنبيهات بنجاح ✅\nسنقوم بتذكيرك بموعد قسطك القادم.",
+                        icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
+                        vibrate: [200, 100, 200],
+                        dir: "rtl"
+                    });
+                } catch (e) {
+                    console.error("SW Registration failed", e);
+                }
+            }
+        }
     }
 
     function checkAutoLogin() {
@@ -101,7 +129,7 @@
                 const user = snap.val();
                 document.getElementById('loadingOverlay').style.display = 'none';
                 if (user) { 
-                    notifyAdmin(user.name); // تنبيه فوري عند استخدام الرابط المباشر
+                    notifyAdmin(user.name); 
                     showData(user); 
                 }
             });
@@ -118,10 +146,11 @@
                 if(data[id].name.trim() === nameInput) { foundUser = data[id]; break; }
             }
             if(foundUser) { 
-                notifyAdmin(foundUser.name); // تنبيه فوري عند تسجيل الدخول اليدوي
+                notifyAdmin(foundUser.name); 
                 showData(foundUser); 
+            } else { 
+                document.getElementById('errorMsg').style.display = 'block'; 
             }
-            else { document.getElementById('errorMsg').style.display = 'block'; }
         });
     }
 
@@ -132,6 +161,17 @@
         document.getElementById('displayModel').innerText = user.model || "غير محدد";
         document.getElementById('displayTotal').innerText = formatNum(user.total);
         
+        // --- تعديل طلب الإشعار التلقائي بعد 5 ثوانٍ ---
+        if ("Notification" in window && Notification.permission === "default") {
+            document.getElementById('notifBtn').style.display = 'block';
+            setTimeout(() => {
+                // إظهار نافذة الطلب الرسمية بعد 5 ثوانٍ
+                requestPermission();
+            }, 5000);
+        } else if (Notification.permission === "denied") {
+            document.getElementById('notifBtn').style.display = 'none';
+        }
+
         let paid = 0;
         const payList = document.getElementById('displayPayments');
         payList.innerHTML = '';
@@ -164,6 +204,7 @@
             }
         }
     }
+
     window.onload = checkAutoLogin;
 </script>
 </body>
