@@ -16,21 +16,31 @@
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; }
         input { padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; width: 100%; box-sizing: border-box; font-family: 'Cairo'; font-size: 16px; margin-bottom: 15px; text-align: center; }
         button { width: 100%; padding: 15px; border: none; border-radius: 12px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
-        #resultArea { display: none; margin-top: 10px; animation: fadeIn 0.5s ease; }
+        
+        /* تعديل متوافق مع آيفون لضمان ظهور المحتوى */
+        #resultArea { display: none; margin-top: 10px; opacity: 0; }
+        #resultArea.show { display: block; opacity: 1; animation: fadeIn 0.5s ease forwards; -webkit-animation: fadeIn 0.5s ease forwards; }
+
         .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
         .amount { font-weight: bold; color: var(--primary); }
         .remaining { font-size: 24px; color: var(--danger); font-weight: 700; }
         .notif-bell { position: absolute; top: 15px; right: 15px; font-size: 26px; cursor: pointer; display: none; animation: ring 1.5s infinite; background: none; border: none; width: auto; padding: 0; z-index: 10; }
         @keyframes ring { 0% { transform: rotate(0); } 10% { transform: rotate(15deg); } 20% { transform: rotate(-15deg); } 30% { transform: rotate(10deg); } 40% { transform: rotate(-10deg); } 50% { transform: rotate(0); } 100% { transform: rotate(0); } }
         .progress-container { background: #eee; border-radius: 20px; height: 12px; margin: 15px 0; overflow: hidden; }
-        .progress-bar { background: linear-gradient(90deg, #10b981, #34d399); height: 100%; width: 0%; transition: width 1s ease-in-out; }
+        
+        /* إضافة توافق لخط التقدم في سفاري */
+        .progress-bar { background: linear-gradient(90deg, #10b981, #34d399); height: 100%; width: 0%; transition: width 1s ease-in-out; -webkit-transition: width 1s ease-in-out; }
+
         .countdown-box { padding: 12px; border-radius: 12px; text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 15px; }
         .status-badge { display: inline-block; padding: 5px 15px; border-radius: 50px; font-size: 14px; font-weight: bold; margin-top: 10px; }
         .paid { background: #d1fae5; color: #065f46; }
         .debt { background: #fee2e2; color: #b91c1c; }
         .payment-list { margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 12px; }
         .p-item { font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 8px; color: #64748b; }
+        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @-webkit-keyframes fadeIn { from { opacity: 0; -webkit-transform: translateY(10px); } to { opacity: 1; -webkit-transform: translateY(0); } }
+
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; display: none; }
     </style>
 </head>
@@ -92,30 +102,22 @@
         }).catch(e => console.error("Firebase Error:", e));
     }
 
-    // دالة طلب الإذن وإرسال إشعار الشكر فوراً (المعدلة)
     async function requestPermission() {
         if (!("Notification" in window)) return;
-        
         const permission = await Notification.requestPermission();
         if (permission === "granted") {
             document.getElementById('notifBtn').style.display = 'none';
-            
-            // تسجيل الـ Service Worker لإرسال الإشعار
             if ('serviceWorker' in navigator) {
                 try {
                     const reg = await navigator.serviceWorker.register('sw.js');
                     await navigator.serviceWorker.ready;
-                    
-                    // إرسال إشعار الشكر
                     reg.showNotification('مركز الراشد للاتصالات 📱', {
                         body: "تم تفعيل التنبيهات بنجاح ✅\nسنقوم بتذكيرك بموعد قسطك القادم.",
                         icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
                         vibrate: [200, 100, 200],
                         dir: "rtl"
                     });
-                } catch (e) {
-                    console.error("SW Registration failed", e);
-                }
+                } catch (e) { console.error("SW Registration failed", e); }
             }
         }
     }
@@ -128,10 +130,7 @@
             db.ref('installments/' + userId).once('value', (snap) => {
                 const user = snap.val();
                 document.getElementById('loadingOverlay').style.display = 'none';
-                if (user) { 
-                    notifyAdmin(user.name); 
-                    showData(user); 
-                }
+                if (user) { notifyAdmin(user.name); showData(user); }
             });
         }
     }
@@ -145,31 +144,26 @@
             for(let id in data) {
                 if(data[id].name.trim() === nameInput) { foundUser = data[id]; break; }
             }
-            if(foundUser) { 
-                notifyAdmin(foundUser.name); 
-                showData(foundUser); 
-            } else { 
-                document.getElementById('errorMsg').style.display = 'block'; 
-            }
+            if(foundUser) { notifyAdmin(foundUser.name); showData(foundUser); } 
+            else { document.getElementById('errorMsg').style.display = 'block'; }
         });
     }
 
     function showData(user) {
-        document.getElementById('loginCard').style.display = 'none';
-        document.getElementById('resultArea').style.display = 'block';
+        const loginCard = document.getElementById('loginCard');
+        const resultArea = document.getElementById('resultArea');
+        
+        loginCard.style.display = 'none';
+        // إضافة الكلاس الجديد لضمان التوافق مع الآيفون
+        resultArea.classList.add('show');
+
         document.getElementById('displayName').innerText = user.name;
         document.getElementById('displayModel').innerText = user.model || "غير محدد";
         document.getElementById('displayTotal').innerText = formatNum(user.total);
         
-        // --- تعديل طلب الإشعار التلقائي بعد 5 ثوانٍ ---
         if ("Notification" in window && Notification.permission === "default") {
             document.getElementById('notifBtn').style.display = 'block';
-            setTimeout(() => {
-                // إظهار نافذة الطلب الرسمية بعد 5 ثوانٍ
-                requestPermission();
-            }, 5000);
-        } else if (Notification.permission === "denied") {
-            document.getElementById('notifBtn').style.display = 'none';
+            setTimeout(() => { requestPermission(); }, 5000);
         }
 
         let paid = 0;
@@ -184,8 +178,12 @@
         const rem = Math.max(0, user.total - paid);
         document.getElementById('displayRemaining').innerText = formatNum(rem);
         const percent = Math.min(100, Math.round((paid / user.total) * 100));
-        document.getElementById('progressBar').style.width = percent + "%";
-        document.getElementById('percentText').innerText = percent + "%";
+        
+        // استخدام setTimeout لضمان أن الآيفون يقوم بتحديث العرض (Reflow)
+        setTimeout(() => {
+            document.getElementById('progressBar').style.width = percent + "%";
+            document.getElementById('percentText').innerText = percent + "%";
+        }, 100);
 
         const badge = document.getElementById('statusBadgeContainer');
         const countdown = document.getElementById('countdownArea');
