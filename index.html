@@ -1,209 +1,188 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مركز الراشد - استعلام الزبائن</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تفاصيل حساب الزبون</title>
+  
+  <!-- Firebase SDK Modules -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-    <style>
-        :root { --primary: #1c4587; --success: #10b981; --danger: #ef4444; --bg: #f4f7f9; --warning: #f59e0b; }
-        body { font-family: 'Cairo', sans-serif; background-color: var(--bg); margin: 0; padding: 20px; direction: rtl; }
-        .container { max-width: 500px; margin: 20px auto; }
-        header { text-align: center; margin-bottom: 20px; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; }
-        input { padding: 15px; border: 2px solid #e2e8f0; border-radius: 12px; width: 100%; box-sizing: border-box; font-family: 'Cairo'; font-size: 16px; margin-bottom: 15px; text-align: center; }
-        button { width: 100%; padding: 15px; border: none; border-radius: 12px; background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
-        
-        /* تعديل متوافق مع آيفون لضمان ظهور المحتوى */
-        #resultArea { display: none; margin-top: 10px; opacity: 0; }
-        #resultArea.show { display: block; opacity: 1; animation: fadeIn 0.5s ease forwards; -webkit-animation: fadeIn 0.5s ease forwards; }
+  <style>
+    :root {
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --primary: #1e293b;
+      --accent: #2563eb;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --paid: #16a34a;
+      --unpaid: #dc2626;
+    }
 
-        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-        .amount { font-weight: bold; color: var(--primary); }
-        .remaining { font-size: 24px; color: var(--danger); font-weight: 700; }
-        .notif-bell { position: absolute; top: 15px; right: 15px; font-size: 26px; cursor: pointer; display: none; animation: ring 1.5s infinite; background: none; border: none; width: auto; padding: 0; z-index: 10; }
-        @keyframes ring { 0% { transform: rotate(0); } 10% { transform: rotate(15deg); } 20% { transform: rotate(-15deg); } 30% { transform: rotate(10deg); } 40% { transform: rotate(-10deg); } 50% { transform: rotate(0); } 100% { transform: rotate(0); } }
-        .progress-container { background: #eee; border-radius: 20px; height: 12px; margin: 15px 0; overflow: hidden; }
-        
-        /* إضافة توافق لخط التقدم في سفاري */
-        .progress-bar { background: linear-gradient(90deg, #10b981, #34d399); height: 100%; width: 0%; transition: width 1s ease-in-out; -webkit-transition: width 1s ease-in-out; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 15px; }
 
-        .countdown-box { padding: 12px; border-radius: 12px; text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 15px; }
-        .status-badge { display: inline-block; padding: 5px 15px; border-radius: 50px; font-size: 14px; font-weight: bold; margin-top: 10px; }
-        .paid { background: #d1fae5; color: #065f46; }
-        .debt { background: #fee2e2; color: #b91c1c; }
-        .payment-list { margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 12px; }
-        .p-item { font-size: 14px; display: flex; justify-content: space-between; margin-bottom: 8px; color: #64748b; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @-webkit-keyframes fadeIn { from { opacity: 0; -webkit-transform: translateY(10px); } to { opacity: 1; -webkit-transform: translateY(0); } }
+    .container { max-width: 500px; margin: 0 auto; }
+    
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+    }
 
-        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; display: none; }
-    </style>
+    .header-card { text-align: center; border-top: 4px solid var(--accent); }
+    .customer-name { font-size: 1.4rem; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
+    .customer-phone { font-size: 0.9rem; color: var(--text-muted); }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+    .stat-item { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 5px; }
+    .stat-value { font-size: 0.95rem; font-weight: bold; }
+
+    .section-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; color: var(--primary); }
+
+    .month-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .month-item:last-child { border-bottom: none; }
+    
+    .month-date { font-weight: 500; font-size: 0.95rem; }
+    .month-details { font-size: 0.8rem; color: var(--text-muted); }
+    
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+    .badge-paid { background-color: #dcfce7; color: var(--paid); }
+    .badge-unpaid { background-color: #fee2e2; color: var(--unpaid); }
+
+    .error-msg { text-align: center; padding: 40px 20px; color: var(--unpaid); font-weight: bold; }
+    .loading { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+  </style>
 </head>
 <body>
 
-<div id="loadingOverlay"><div style="text-align: center;"><p style="font-weight: bold; color: var(--primary);">جاري تحميل بياناتك...</p></div></div>
+  <div class="container" id="app">
+    <div class="loading" id="loadingState">جاري تحميل البيانات...</div>
+  </div>
 
-<div class="container">
-    <header><h1 style="color: var(--primary); margin-bottom: 5px;">مركز الراشد</h1><p style="color: #64748b;">نظام متابعة الأقساط للزبائن</p></header>
-    <div class="card" id="loginCard">
-        <p style="text-align: center; margin-bottom: 20px;">يرجى كتابة اسمك الثلاثي كما مسجل في الوصل</p>
-        <input type="text" id="custNameInput" placeholder="اكتب اسمك هنا...">
-        <button onclick="checkAccess()">عرض حالة حسابي</button>
-        <p id="errorMsg" style="color: var(--danger); text-align: center; margin-top: 10px; display: none; font-size: 14px;">عذراً، الاسم غير موجود في سجلاتنا</p>
-    </div>
-    <div id="resultArea">
-        <div class="card">
-            <button id="notifBtn" class="notif-bell" onclick="requestPermission()">🔔</button>
-            <h2 id="displayName" style="margin-top: 0; color: var(--primary); text-align: center; padding-top: 10px;"></h2>
-            <div id="countdownArea"></div>
-            <div id="statusBadgeContainer" style="text-align: center;"></div>
-            <div style="margin-top: 20px;">
-                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; color: var(--primary);"><span>نسبة تسديد المبلغ</span><span id="percentText">0%</span></div>
-                <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
-            </div>
-            <div style="margin-top: 15px;">
-                <div class="info-row"><span>نوع الجهاز:</span> <span id="displayModel" class="amount"></span></div>
-                <div class="info-row"><span>السعر الكلي:</span> <span id="displayTotal" class="amount"></span></div>
-                <div class="info-row" style="border:none;"><span>المبلغ المتبقي بذمتك:</span></div>
-                <div style="text-align: center;" id="displayRemaining" class="remaining"></div>
-            </div>
-            <div class="payment-list"><p style="margin-top: 0; font-weight: bold; color: #475569; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px;">سجل مدفوعاتك:</p><div id="displayPayments"></div></div>
-            <button onclick="location.href='index.html'" style="margin-top: 20px; background: #64748b;">خروج</button>
-        </div>
-    </div>
-</div>
-
-<script>
+  <script>
+    // 1. إعدادات Firebase الخاصة بمشروعك
     const firebaseConfig = {
-        apiKey: "AIzaSyBpt495yhuoTbjunCLIFCF_8c1NesxZHWs",
-        authDomain: "shopweb-3466b.firebaseapp.com",
-        databaseURL: "https://shopweb-3466b-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "shopweb-3466b",
-        storageBucket: "shopweb-3466b.firebasestorage.app",
-        messagingSenderId: "41811528812",
-        appId: "1:41811528812:web:618f240f8106f218a8dc49"
+      apiKey: "AIzaSyC6nz1_dENnayngLi1iiq8KDOKQmbfwNDI",
+      authDomain: "rashedshopv1.firebaseapp.com",
+      databaseURL: "https://rashedshopv1-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "rashedshopv1",
+      storageBucket: "rashedshopv1.firebasestorage.app",
+      messagingSenderId: "946603870783",
+      appId: "1:946603870783:web:59aaa8549fab98635fc68a"
     };
 
+    // تهيئة تطبيق Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function formatNum(n) { return Number(n).toLocaleString() + " د.ع"; }
+    const appContainer = document.getElementById('app');
 
-    function notifyAdmin(userName) {
-        if(!userName) return;
-        db.ref('lastVisit').set({ 
-            name: userName, 
-            time: firebase.database.ServerValue.TIMESTAMP 
-        }).catch(e => console.error("Firebase Error:", e));
+    // 2. استخراج ID الزبون من الرابط
+    const urlParams = new URLSearchParams(window.location.search);
+    const customerId = urlParams.get('id');
+
+    // 3. التحقق وجلب البيانات
+    if (!customerId) {
+      appContainer.innerHTML = `<div class="card error-msg">الرابط غير صالح. يرجى التنسيق مع المحل للحصول على الرابط الصحيح.</div>`;
+    } else {
+      fetchCustomerData(customerId);
     }
 
-    async function requestPermission() {
-        if (!("Notification" in window)) return;
-        const permission = await Notification.requestPermission();
-        if (permission === "granted") {
-            document.getElementById('notifBtn').style.display = 'none';
-            if ('serviceWorker' in navigator) {
-                try {
-                    const reg = await navigator.serviceWorker.register('sw.js');
-                    await navigator.serviceWorker.ready;
-                    reg.showNotification('مركز الراشد للاتصالات 📱', {
-                        body: "تم تفعيل التنبيهات بنجاح ✅\nسنقوم بتذكيرك بموعد قسطك القادم.",
-                        icon: "https://cdn-icons-png.flaticon.com/512/1161/1161388.png",
-                        vibrate: [200, 100, 200],
-                        dir: "rtl"
-                    });
-                } catch (e) { console.error("SW Registration failed", e); }
-            }
-        }
-    }
-
-    function checkAutoLogin() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('id');
-        if (userId) {
-            document.getElementById('loadingOverlay').style.display = 'flex';
-            db.ref('installments/' + userId).once('value', (snap) => {
-                const user = snap.val();
-                document.getElementById('loadingOverlay').style.display = 'none';
-                if (user) { notifyAdmin(user.name); showData(user); }
-            });
-        }
-    }
-
-    function checkAccess() {
-        const nameInput = document.getElementById('custNameInput').value.trim();
-        if(!nameInput) return;
-        db.ref('installments').once('value', (snap) => {
-            const data = snap.val();
-            let foundUser = null;
-            for(let id in data) {
-                if(data[id].name.trim() === nameInput) { foundUser = data[id]; break; }
-            }
-            if(foundUser) { notifyAdmin(foundUser.name); showData(foundUser); } 
-            else { document.getElementById('errorMsg').style.display = 'block'; }
+    function fetchCustomerData(id) {
+      // الاستعلام المباشر من عقدة customers بناءً على الـ ID
+      db.ref('customers/' + id).once('value')
+        .then(snapshot => {
+          if (!snapshot.exists()) {
+            appContainer.innerHTML = `<div class="card error-msg">لم يتم العثور على حساب بهذا الرقم.</div>`;
+            return;
+          }
+          const data = snapshot.val();
+          renderCustomerPortal(data);
+        })
+        .catch(error => {
+          console.error('Firebase Error:', error);
+          appContainer.innerHTML = `<div class="card error-msg">حدث خطأ في الاتصال بقاعدة البيانات. حاول لاحقاً.</div>`;
         });
     }
 
-    function showData(user) {
-        const loginCard = document.getElementById('loginCard');
-        const resultArea = document.getElementById('resultArea');
-        
-        loginCard.style.display = 'none';
-        // إضافة الكلاس الجديد لضمان التوافق مع الآيفون
-        resultArea.classList.add('show');
+    // 4. عرض البيانات بصيغة قراءة فقط
+    function renderCustomerPortal(data) {
+      const totalAmount = Number(data.total_amount || 0);
+      const paidAmount = Number(data.paid_amount || 0);
+      const remainingAmount = totalAmount - paidAmount;
 
-        document.getElementById('displayName').innerText = user.name;
-        document.getElementById('displayModel').innerText = user.model || "غير محدد";
-        document.getElementById('displayTotal').innerText = formatNum(user.total);
-        
-        if ("Notification" in window && Notification.permission === "default") {
-            document.getElementById('notifBtn').style.display = 'block';
-            setTimeout(() => { requestPermission(); }, 5000);
-        }
+      let monthsHtml = '';
+      if (data.months && Array.isArray(data.months) && data.months.length > 0) {
+        monthsHtml = data.months.map(m => {
+          const isPaid = m.status === 'paid';
+          const statusBadge = isPaid 
+            ? `<span class="badge badge-paid">واصل</span>` 
+            : `<span class="badge badge-unpaid">غير مدفوع</span>`;
+          
+          const payDateInfo = (isPaid && m.paid_at) 
+            ? `<br><small style="color:#16a34a">تاريخ الدفع: ${m.paid_at}</small>` 
+            : '';
 
-        let paid = 0;
-        const payList = document.getElementById('displayPayments');
-        payList.innerHTML = '';
-        if(user.payments) {
-            user.payments.forEach(p => {
-                paid += p.amount;
-                payList.innerHTML += `<div class="p-item"><span>تم دفع: ${formatNum(p.amount)}</span><span>بتاريخ: ${p.date.split('|')[0]}</span></div>`;
-            });
-        }
-        const rem = Math.max(0, user.total - paid);
-        document.getElementById('displayRemaining').innerText = formatNum(rem);
-        const percent = Math.min(100, Math.round((paid / user.total) * 100));
-        
-        // استخدام setTimeout لضمان أن الآيفون يقوم بتحديث العرض (Reflow)
-        setTimeout(() => {
-            document.getElementById('progressBar').style.width = percent + "%";
-            document.getElementById('percentText').innerText = percent + "%";
-        }, 100);
+          return `
+            <div class="month-item">
+              <div>
+                <div class="month-date">قسط شهر: ${m.due_date}</div>
+                <div class="month-details">المبلغ: ${Number(m.amount || 0).toLocaleString()} د.ع ${payDateInfo}</div>
+              </div>
+              <div>${statusBadge}</div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        monthsHtml = '<div style="text-align:center; color:var(--text-muted); padding:10px;">لا توجد أقساط مسجلة.</div>';
+      }
 
-        const badge = document.getElementById('statusBadgeContainer');
-        const countdown = document.getElementById('countdownArea');
-        
-        if(rem <= 0) {
-            badge.innerHTML = '<span class="status-badge paid">✅ تم تسديد الحساب بالكامل</span>';
-            countdown.innerHTML = '';
-        } else {
-            badge.innerHTML = '<span class="status-badge debt">⚠️ بانتظار تسديد المتبقي</span>';
-            if(user.nextDueDate) {
-                const diff = user.nextDueDate - Date.now();
-                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                if(days > 7) countdown.innerHTML = `<div class="countdown-box debt" style="background:#d1fae5; color:#065f46;">⏳ متبقي على موعد قسطك القادم: ${days} يوم</div>`;
-                else if (days > 0) countdown.innerHTML = `<div class="countdown-box near" style="background:#fef3c7; color:#92400e;">⚠️ موعد القسط قريب جداً: باقي ${days} يوم</div>`;
-                else countdown.innerHTML = `<div class="countdown-box debt" style="background:#fee2e2; color:#b91c1c;">🚨 متأخر عن موعد التسديد بـ ${Math.abs(days)} يوم!</div>`;
-            }
-        }
+      appContainer.innerHTML = `
+        <div class="card header-card">
+          <div class="customer-name">${data.name || 'غير محدد'}</div>
+          <div class="customer-phone">${data.phone || ''}</div>
+          
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-label">المبلغ الكلي</div>
+              <div class="stat-value">${totalAmount.toLocaleString()}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">الواصل</div>
+              <div class="stat-value" style="color:var(--paid);">${paidAmount.toLocaleString()}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">المتبقي</div>
+              <div class="stat-value" style="color:var(--unpaid);">${remainingAmount.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">جدول الأقساط وتواريخها</div>
+          <div>${monthsHtml}</div>
+        </div>
+      `;
     }
-
-    window.onload = checkAutoLogin;
-</script>
+  </script>
 </body>
 </html>
