@@ -2,99 +2,240 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تقرير الأقساط - مركز الراشد</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>كشف حساب الأقساط - مركز الراشد</title>
   
-  <!-- Firebase SDK Compatible -->
+  <!-- Google Fonts: Cairo (Arabic) & Roboto/Inter (English Numbers) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Roboto:wght@500;700;900&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <style>
     :root {
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --primary: #1e3a8a;
-      --accent-purple: #6366f1;
-      --text-dark: #0f172a;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --primary: #0f172a;
+      --brand-blue: #1e40af;
+      --accent: #4f46e5;
+      --text-main: #1e293b;
       --text-muted: #64748b;
-      --border: #e2e8f0;
+      --border: #cbd5e1;
       
-      --blue-bg: #eff6ff;
-      --blue-text: #1d4ed8;
+      --paid-bg: #dcfce7;
+      --paid-text: #15803d;
+      --paid-border: #86efac;
       
-      --green-bg: #f0fdf4;
-      --green-text: #15803d;
-      
-      --red-bg: #fef2f2;
-      --red-text: #b91c1c;
+      --due-bg: #fee2e2;
+      --due-text: #b91c1c;
+      --due-border: #fca5a5;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg); color: var(--text-dark); padding: 20px 10px; }
-
-    .container { max-width: 750px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-
-    /* Top Header */
-    .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px dashed var(--border); }
-    .report-date { font-size: 0.85rem; color: var(--text-muted); }
-    .report-date strong { display: block; color: var(--text-dark); margin-top: 4px; font-size: 0.95rem; }
-    .brand-section { display: flex; align-items: center; gap: 15px; }
-    .brand-info { text-align: left; }
-    .brand-name { font-size: 1.6rem; font-weight: 800; color: #1e3a8a; }
-    .brand-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
-    .brand-logo { background: #0f172a; color: #38bdf8; font-weight: 900; font-size: 1.2rem; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-
-    /* Info Cards Grid */
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-    .info-card { background: #fff; border: 1px solid #e0e7ff; border-radius: 12px; padding: 16px; position: relative; }
-    .info-card::before { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 4px; background: var(--accent-purple); border-radius: 0 12px 12px 0; }
-    .card-title { font-size: 1rem; font-weight: 700; color: var(--accent-purple); margin-bottom: 12px; }
-    .data-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
-    .data-row:last-child { margin-bottom: 0; }
-    .data-label { color: var(--text-muted); }
-    .data-val { font-weight: 700; color: var(--text-dark); text-align: left; }
-
-    /* Totals Summary */
-    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 25px; }
-    .sum-box { padding: 15px 10px; border-radius: 12px; text-align: center; border: 1px solid transparent; }
-    .sum-box.blue { background: var(--blue-bg); border-color: #bfdbfe; color: var(--blue-text); }
-    .sum-box.green { background: var(--green-bg); border-color: #bbf7d0; color: var(--green-text); }
-    .sum-box.red { background: var(--red-bg); border-color: #fecaca; color: var(--red-text); }
-    .sum-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; }
-    .sum-value { font-size: 1.15rem; font-weight: 800; }
-
-    /* Table Section */
-    .table-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 12px; color: var(--text-dark); }
-    .table-wrapper { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.88rem; }
-    th { background: #2563eb; color: #fff; padding: 10px 6px; font-weight: 700; }
-    th:first-child { border-radius: 0 8px 8px 0; }
-    th:last-child { border-radius: 8px 0 0 8px; }
-    td { padding: 12px 6px; border-bottom: 1px solid var(--border); }
-    tr:nth-child(even) td { background-color: #f8fafc; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     
-    .status-badge { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; }
-    .status-paid { color: var(--green-text); background: var(--green-bg); }
-    .status-due { color: var(--red-text); background: var(--red-bg); }
+    body { 
+      background-color: var(--bg); 
+      color: var(--text-main); 
+      font-family: 'Cairo', sans-serif; 
+      padding: 12px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* English numbers enforcement */
+    .num {
+      font-family: 'Roboto', 'Inter', system-ui, sans-serif !important;
+      direction: ltr;
+      display: inline-block;
+      font-weight: 700;
+    }
+
+    .container { 
+      max-width: 800px; 
+      margin: 0 auto; 
+      background: var(--card); 
+      padding: 18px; 
+      border-radius: 20px; 
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); 
+    }
+
+    /* Top Brand Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 15px;
+      border-bottom: 2px dashed var(--border);
+      margin-bottom: 18px;
+    }
+    .brand-title { font-size: 1.4rem; font-weight: 900; color: var(--brand-blue); line-height: 1.2; }
+    .brand-sub { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; margin-top: 3px; }
+    .logo-badge {
+      background: #0f172a;
+      color: #38bdf8;
+      font-weight: 900;
+      font-size: 1.2rem;
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+      flex-shrink: 0;
+    }
+
+    /* Summary Dashboard Cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .sum-card {
+      padding: 14px 8px;
+      border-radius: 14px;
+      text-align: center;
+      border: 1px solid transparent;
+    }
+    .sum-card.total { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .sum-card.paid { background: var(--paid-bg); border-color: var(--paid-border); color: var(--paid-text); }
+    .sum-card.remaining { background: var(--due-bg); border-color: var(--due-border); color: var(--due-text); }
+    
+    .sum-label { font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; opacity: 0.9; }
+    .sum-val { font-size: 1.15rem; font-weight: 900; }
+
+    /* Client Details Grid */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .info-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .box-head {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+    }
+    .info-row:last-child { margin-bottom: 0; }
+    .lbl { color: var(--text-muted); font-weight: 600; }
+    .val { font-weight: 700; color: var(--text-main); text-align: left; }
+
+    /* Section Title */
+    .section-header {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Mobile First Installment Cards View */
+    .mobile-list { display: flex; flex-direction: column; gap: 10px; }
+    
+    .install-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .install-card.is-paid {
+      border-right: 6px solid var(--paid-text);
+      background: #f0fdf4;
+    }
+    .install-card.is-due {
+      border-right: 6px solid var(--due-text);
+      background: #fff;
+    }
+    .install-card.is-deposit {
+      border-right: 6px solid #3b82f6;
+      background: #f0f9ff;
+    }
+
+    .card-right { display: flex; flex-direction: column; gap: 4px; }
+    .card-title-text { font-size: 0.95rem; font-weight: 800; color: var(--text-main); }
+    .card-date-text { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+
+    .card-left { text-align: left; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .card-amount { font-size: 1.05rem; font-weight: 900; color: var(--text-main); }
+    
+    .badge-status {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      display: inline-block;
+    }
+    .badge-status.paid { background: var(--paid-bg); color: var(--paid-text); border: 1px solid var(--paid-border); }
+    .badge-status.due { background: var(--due-bg); color: var(--due-text); border: 1px solid var(--due-border); }
+    .badge-status.deposit { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+
+    /* Desktop Table View (Hidden on Mobile) */
+    .desktop-table { display: none; }
 
     /* Footer Branding */
-    .report-footer { margin-top: 30px; padding-top: 15px; border-top: 1px dashed var(--border); display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); }
+    .footer {
+      margin-top: 25px;
+      padding-top: 15px;
+      border-top: 2px dashed var(--border);
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
 
-    .loading, .error-msg { text-align: center; padding: 50px 20px; font-weight: bold; }
-    .error-msg { color: var(--red-text); }
+    .loading, .error-msg { text-align: center; padding: 40px 10px; font-weight: 800; font-size: 1.1rem; }
+    .error-msg { color: var(--due-text); }
 
-    @media (max-width: 600px) {
-      .container { padding: 15px; }
+    /* Desktop Styles Override */
+    @media (min-width: 640px) {
+      body { padding: 25px; }
+      .container { padding: 25px; }
+      .mobile-list { display: none; }
+      .desktop-table { display: table; width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9rem; }
+      .desktop-table th { background: var(--brand-blue); color: #fff; padding: 12px 8px; font-weight: 700; }
+      .desktop-table th:first-child { border-radius: 0 10px 10px 0; }
+      .desktop-table th:last-child { border-radius: 10px 0 0 10px; }
+      .desktop-table td { padding: 12px 8px; border-bottom: 1px solid var(--border); font-weight: 600; }
+    }
+
+    @media (max-width: 480px) {
       .info-grid { grid-template-columns: 1fr; }
-      .summary-grid { grid-template-columns: 1fr; }
-      .brand-name { font-size: 1.3rem; }
+      .sum-val { font-size: 0.95rem; }
+      .sum-label { font-size: 0.72rem; }
+      .brand-title { font-size: 1.2rem; }
     }
   </style>
 </head>
 <body>
 
   <div class="container" id="app">
-    <div class="loading">جاري تحميل تقرير الأقساط...</div>
+    <div class="loading">جاري تحضير كشف الحساب...</div>
   </div>
 
   <script>
@@ -116,35 +257,32 @@
     const customerId = urlParams.get('id');
 
     if (!customerId) {
-      appContainer.innerHTML = `<div class="error-msg">الرابط غير صحيح أو ناقص.</div>`;
+      appContainer.innerHTML = `<div class="error-msg">الرابط غير صحيح أو انتهت صلاحيته.</div>`;
     } else {
       fetchCustomerData(customerId);
     }
 
     function fetchCustomerData(id) {
-      // قراءة مسار الفايربيس الخاص بزبون محدد
       db.ref('customers/' + id).once('value')
         .then(snapshot => {
           if (!snapshot.exists()) {
-            // محاولة مسار آخر في حال وجود عقدة أصلية
             return db.ref('installments/customers/' + id).once('value');
           }
           return snapshot;
         })
         .then(snapshot => {
           if (!snapshot || !snapshot.exists()) {
-            appContainer.innerHTML = `<div class="error-msg">لم يتم العثور على حساب بهذا الرمز.</div>`;
+            appContainer.innerHTML = `<div class="error-msg">عذراً، لم يتم العثور على حساب بهذا الرمز.</div>`;
             return;
           }
           renderCustomerPortal(snapshot.val());
         })
         .catch(error => {
           console.error(error);
-          appContainer.innerHTML = `<div class="error-msg">حدث خطأ أثناء تحميل البيانات.</div>`;
+          appContainer.innerHTML = `<div class="error-msg">حدث خطأ أثناء تحميل البيانات، يرجى المحاولة لاحقاً.</div>`;
         });
     }
 
-    // تنسيق التاريخ من timestamp أو نص
     function formatDate(dateVal) {
       if (!dateVal || dateVal === '--') return '--';
       if (typeof dateVal === 'number' || !isNaN(dateVal)) {
@@ -157,7 +295,6 @@
     }
 
     function renderCustomerPortal(data) {
-      // قراءة البيانات بالأسماء الدقيقة من الفايربيس
       const name = data.name || 'غير محدد';
       const phone = data.phone || 'غير محدد';
       const address = data.address || 'الزبير - حي الشهداء';
@@ -167,31 +304,44 @@
       const downPayment = Number(data.firstPay || 0);
 
       const totalAmount = Number(data.total || 0);
-      
-      // حساب الأقساط
+
       let monthsList = [];
       if (data.months) {
         monthsList = Array.isArray(data.months) ? data.months : Object.values(data.months);
       }
 
       let totalPaidFromMonths = 0;
-      let rowsHtml = '';
+      let mobileCardsHtml = '';
+      let desktopRowsHtml = '';
 
-      // سطر المقدمة
+      // 1. إضافة المقدمة (سواء للجوال أو للحاسبة)
       if (downPayment > 0) {
-        rowsHtml += `
+        mobileCardsHtml += `
+          <div class="install-card is-deposit">
+            <div class="card-right">
+              <span class="card-title-text">المقدمة (دفعة أولى)</span>
+              <span class="card-date-text">تاريخ الدفع: <span class="num">${buyDate}</span></span>
+            </div>
+            <div class="card-left">
+              <span class="card-amount"><span class="num">${downPayment.toLocaleString()}</span> د.ع</span>
+              <span class="badge-status deposit">واصل ✓</span>
+            </div>
+          </div>
+        `;
+
+        desktopRowsHtml += `
           <tr>
             <td>--</td>
-            <td>${buyDate}</td>
-            <td>${buyDate}</td>
+            <td><span class="num">${buyDate}</span></td>
+            <td><span class="num">${buyDate}</span></td>
             <td>المقدمة</td>
-            <td>${downPayment.toLocaleString()} د.ع</td>
-            <td><span class="status-badge status-paid">✓ مدفوع</span></td>
+            <td><span class="num">${downPayment.toLocaleString()}</span> د.ع</td>
+            <td><span class="badge-status deposit">واصل ✓</span></td>
           </tr>
         `;
       }
 
-      // حساب جدول الأقساط
+      // 2. معالجة باقي الأقساط
       monthsList.forEach((m) => {
         const reqAmount = Number(m.required || m.amount || 0);
         const remAmount = Number(m.remaining !== undefined ? m.remaining : reqAmount);
@@ -203,25 +353,49 @@
         const isPaid = (m.status && m.status.toLowerCase() === 'paid') || remAmount === 0;
         const isPartiallyPaid = paidForThisMonth > 0 && remAmount > 0;
 
-        let statusHtml = '';
+        let statusBadgeMobile = '';
+        let statusBadgeDesktop = '';
+        let cardClass = '';
+
         if (isPaid) {
-          statusHtml = `<span class="status-badge status-paid">✓ مدفوع</span>`;
+          statusBadgeMobile = `<span class="badge-status paid">واصل ✓</span>`;
+          statusBadgeDesktop = `<span class="badge-status paid">واصل ✓</span>`;
+          cardClass = 'is-paid';
         } else if (isPartiallyPaid) {
-          statusHtml = `<span class="status-badge status-paid">جزئي</span>`;
+          statusBadgeMobile = `<span class="badge-status paid">واصل جزئي</span>`;
+          statusBadgeDesktop = `<span class="badge-status paid">واصل جزئي</span>`;
+          cardClass = 'is-paid';
         } else {
-          statusHtml = `<span class="status-badge status-due">مستحق</span>`;
+          statusBadgeMobile = `<span class="badge-status due">مستحق</span>`;
+          statusBadgeDesktop = `<span class="badge-status due">مستحق</span>`;
+          cardClass = 'is-due';
         }
 
         const payDateFormatted = isPaid ? (formatDate(m.paidAt) || dueDateFormatted) : '--';
 
-        rowsHtml += `
+        // بطاقة الجوال
+        mobileCardsHtml += `
+          <div class="install-card ${cardClass}">
+            <div class="card-right">
+              <span class="card-title-text">قسط شهر (${m.monthNumber || '1'})</span>
+              <span class="card-date-text">استحقاق: <span class="num">${dueDateFormatted}</span></span>
+            </div>
+            <div class="card-left">
+              <span class="card-amount"><span class="num">${reqAmount.toLocaleString()}</span> د.ع</span>
+              ${statusBadgeMobile}
+            </div>
+          </div>
+        `;
+
+        // سطر الجدول للحاسبة
+        desktopRowsHtml += `
           <tr>
-            <td>${m.monthNumber || '--'}</td>
-            <td>${dueDateFormatted}</td>
-            <td>${payDateFormatted}</td>
-            <td>${reqAmount.toLocaleString()} د.ع</td>
-            <td>${paidForThisMonth.toLocaleString()} د.ع</td>
-            <td>${statusHtml}</td>
+            <td><span class="num">${m.monthNumber || '--'}</span></td>
+            <td><span class="num">${dueDateFormatted}</span></td>
+            <td><span class="num">${payDateFormatted}</span></td>
+            <td><span class="num">${reqAmount.toLocaleString()}</span> د.ع</td>
+            <td><span class="num">${paidForThisMonth.toLocaleString()}</span> د.ع</td>
+            <td>${statusBadgeDesktop}</td>
           </tr>
         `;
       });
@@ -229,76 +403,79 @@
       const totalPaid = downPayment + totalPaidFromMonths;
       const remainingAmount = totalAmount - totalPaid;
 
-      const reportDate = new Date().toISOString().split('T')[0];
-
       appContainer.innerHTML = `
-        <div class="top-header">
-          <div class="report-date">
-            تاريخ التقرير
-            <strong>${reportDate}</strong>
+        <!-- الهيدر العلوي -->
+        <div class="header">
+          <div>
+            <div class="brand-title">مركز الراشد</div>
+            <div class="brand-sub">لتصليح وبيع الأجهزة والأرصدة - الزبير حي الشهداء</div>
           </div>
-          <div class="brand-section">
-            <div class="brand-info">
-              <div class="brand-name">مركز الراشد</div>
-              <div class="brand-sub">لتصليح وبيع الأجهزة والأرصدة - الزبير حي الشهداء</div>
-            </div>
-            <div class="brand-logo">5G</div>
-          </div>
+          <div class="logo-badge">5G</div>
         </div>
 
-        <div class="info-grid">
-          <div class="info-card">
-            <div class="card-title">بيانات الزبون</div>
-            <div class="data-row"><span class="data-label">الاسم:</span><span class="data-val">${name}</span></div>
-            <div class="data-row"><span class="data-label">الهاتف:</span><span class="data-val">${phone}</span></div>
-            <div class="data-row"><span class="data-label">العنوان:</span><span class="data-val">${address}</span></div>
-          </div>
-
-          <div class="info-card">
-            <div class="card-title">بيانات العقد</div>
-            <div class="data-row"><span class="data-label">اسم المادة:</span><span class="data-val">${itemName}</span></div>
-            <div class="data-row"><span class="data-label">تاريخ الشراء:</span><span class="data-val">${buyDate}</span></div>
-            <div class="data-row"><span class="data-label">المقدمة:</span><span class="data-val">${downPayment.toLocaleString()} د.ع</span></div>
-          </div>
-        </div>
-
+        <!-- ملخص المبالغ (ثلاثية أزرار شاشة الجوال) -->
         <div class="summary-grid">
-          <div class="sum-box blue">
-            <div class="sum-title">المبلغ الكلي</div>
-            <div class="sum-value">${totalAmount.toLocaleString()} د.ع</div>
+          <div class="sum-card total">
+            <div class="sum-label">المبلغ الكلي</div>
+            <div class="sum-val"><span class="num">${totalAmount.toLocaleString()}</span> د.ع</div>
           </div>
-          <div class="sum-box green">
-            <div class="sum-title">المدفوع</div>
-            <div class="sum-value">${totalPaid.toLocaleString()} د.ع</div>
+          <div class="sum-card paid">
+            <div class="sum-label">الواصل</div>
+            <div class="sum-val"><span class="num">${totalPaid.toLocaleString()}</span> د.ع</div>
           </div>
-          <div class="sum-box red">
-            <div class="sum-title">المتبقي</div>
-            <div class="sum-value">${remainingAmount.toLocaleString()} د.ع</div>
+          <div class="sum-card remaining">
+            <div class="sum-label">المتبقي</div>
+            <div class="sum-val"><span class="num">${remainingAmount.toLocaleString()}</span> د.ع</div>
           </div>
         </div>
 
-        <div class="table-title">جدول الأقساط:</div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>تاريخ الاستحقاق</th>
-                <th>تاريخ التسديد</th>
-                <th>المبلغ</th>
-                <th>المدفوع</th>
-                <th>الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
+        <!-- بيانات العقد والزبون -->
+        <div class="info-grid">
+          <div class="info-box">
+            <div class="box-head">👤 بيانات الزبون</div>
+            <div class="info-row"><span class="lbl">الاسم:</span><span class="val">${name}</span></div>
+            <div class="info-row"><span class="lbl">الهاتف:</span><span class="val"><span class="num">${phone}</span></span></div>
+            <div class="info-row"><span class="lbl">العنوان:</span><span class="val">${address}</span></div>
+          </div>
+
+          <div class="info-box">
+            <div class="box-head">📱 بيانات العقد</div>
+            <div class="info-row"><span class="lbl">اسم المادة:</span><span class="val">${itemName}</span></div>
+            <div class="info-row"><span class="lbl">تاريخ الشراء:</span><span class="val"><span class="num">${buyDate}</span></span></div>
+            <div class="info-row"><span class="lbl">المقدمة:</span><span class="val"><span class="num">${downPayment.toLocaleString()}</span> د.ع</span></div>
+          </div>
         </div>
 
-        <div class="report-footer">
-          <span>أقساط بلس - نظام إدارة الأقساط</span>
-          <span>نعتز بتقتكم بنا - مركز الراشد</span>
+        <!-- عنوان قائمة الأقساط -->
+        <div class="section-header">
+          <span>جدول الأقساط والشداد:</span>
+        </div>
+
+        <!-- عرض الجوال (بطاقات واضحة) -->
+        <div class="mobile-list">
+          ${mobileCardsHtml}
+        </div>
+
+        <!-- عرض الحاسبة (جدول منظم) -->
+        <table class="desktop-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>تاريخ الاستحقاق</th>
+              <th>تاريخ التسديد</th>
+              <th>المبلغ</th>
+              <th>المدفوع</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${desktopRowsHtml}
+          </tbody>
+        </table>
+
+        <!-- حقوق الأسفل -->
+        <div class="footer">
+          نظام إدارة الأقساط الخاص بـ مركز الراشد
         </div>
       `;
     }
