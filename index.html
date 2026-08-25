@@ -79,7 +79,7 @@
   </div>
 
   <script>
-    // 1. إعدادات Firebase الخاصة بمشروعك
+    // 1. إعدادات Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyC6nz1_dENnayngLi1iiq8KDOKQmbfwNDI",
       authDomain: "rashedshopv1.firebaseapp.com",
@@ -90,7 +90,6 @@
       appId: "1:946603870783:web:59aaa8549fab98635fc68a"
     };
 
-    // تهيئة تطبيق Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -100,16 +99,16 @@
     const urlParams = new URLSearchParams(window.location.search);
     const customerId = urlParams.get('id');
 
-    // 3. التحقق وجلب البيانات
+    // 3. جلب البيانات
     if (!customerId) {
-      appContainer.innerHTML = `<div class="card error-msg">الرابط غير صالح. يرجى التنسيق مع المحل للحصول على الرابط الصحيح.</div>`;
+      appContainer.innerHTML = `<div class="card error-msg">الرابط غير صالح. يرجى التأكد من الرمز المستلم.</div>`;
     } else {
       fetchCustomerData(customerId);
     }
 
     function fetchCustomerData(id) {
-      // الاستعلام المباشر من عقدة customers بناءً على الـ ID
-      db.ref('customers/' + id).once('value')
+      // تم التعديل إلى المسار المباشر الصحيح: installments/customers/
+      db.ref('installments/customers/' + id).once('value')
         .then(snapshot => {
           if (!snapshot.exists()) {
             appContainer.innerHTML = `<div class="card error-msg">لم يتم العثور على حساب بهذا الرقم.</div>`;
@@ -124,7 +123,7 @@
         });
     }
 
-    // 4. عرض البيانات بصيغة قراءة فقط
+    // 4. عرض البيانات للزبون (قراءة فقط)
     function renderCustomerPortal(data) {
       const totalAmount = Number(data.total_amount || 0);
       const paidAmount = Number(data.paid_amount || 0);
