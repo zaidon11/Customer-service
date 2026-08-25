@@ -3,83 +3,101 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تفاصيل حساب الزبون</title>
+  <title>تقرير الأقساط - مركز الراشد</title>
   
-  <!-- Firebase SDK Modules -->
+  <!-- Firebase SDK Compatible -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <style>
     :root {
-      --bg-color: #f4f6f9;
+      --bg: #f8fafc;
       --card-bg: #ffffff;
-      --primary: #1e293b;
-      --accent: #2563eb;
-      --text-main: #0f172a;
+      --primary: #1e3a8a;
+      --accent-purple: #6366f1;
+      --text-dark: #0f172a;
       --text-muted: #64748b;
       --border: #e2e8f0;
-      --paid: #16a34a;
-      --unpaid: #dc2626;
+      
+      --blue-bg: #eff6ff;
+      --blue-text: #1d4ed8;
+      
+      --green-bg: #f0fdf4;
+      --green-text: #15803d;
+      
+      --red-bg: #fef2f2;
+      --red-text: #b91c1c;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text-main); padding: 15px; }
+    body { background-color: var(--bg); color: var(--text-dark); padding: 20px 10px; }
 
-    .container { max-width: 500px; margin: 0 auto; }
+    .container { max-width: 750px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+
+    /* Top Header */
+    .top-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px dashed var(--border); }
+    .report-date { font-size: 0.85rem; color: var(--text-muted); }
+    .report-date strong { display: block; color: var(--text-dark); margin-top: 4px; font-size: 0.95rem; }
+    .brand-section { display: flex; align-items: center; gap: 15px; }
+    .brand-info { text-align: left; }
+    .brand-name { font-size: 1.6rem; font-weight: 800; color: #1e3a8a; }
+    .brand-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .brand-logo { background: #0f172a; color: #38bdf8; font-weight: 900; font-size: 1.2rem; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+
+    /* Info Cards Grid */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+    .info-card { background: #fff; border: 1px solid #e0e7ff; border-radius: 12px; padding: 16px; position: relative; }
+    .info-card::before { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 4px; background: var(--accent-purple); border-radius: 0 12px 12px 0; }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--accent-purple); margin-bottom: 12px; }
+    .data-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+    .data-row:last-child { margin-bottom: 0; }
+    .data-label { color: var(--text-muted); }
+    .data-val { font-weight: 700; color: var(--text-dark); text-align: left; }
+
+    /* Totals Summary */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 25px; }
+    .sum-box { padding: 15px 10px; border-radius: 12px; text-align: center; border: 1px solid transparent; }
+    .sum-box.blue { background: var(--blue-bg); border-color: #bfdbfe; color: var(--blue-text); }
+    .sum-box.green { background: var(--green-bg); border-color: #bbf7d0; color: var(--green-text); }
+    .sum-box.red { background: var(--red-bg); border-color: #fecaca; color: var(--red-text); }
+    .sum-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; }
+    .sum-value { font-size: 1.15rem; font-weight: 800; }
+
+    /* Table Section */
+    .table-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 12px; color: var(--text-dark); }
+    .table-wrapper { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.88rem; }
+    th { background: #2563eb; color: #fff; padding: 10px 6px; font-weight: 700; }
+    th:first-child { border-radius: 0 8px 8px 0; }
+    th:last-child { border-radius: 8px 0 0 8px; }
+    td { padding: 12px 6px; border-bottom: 1px solid var(--border); }
+    tr:nth-child(even) td { background-color: #f8fafc; }
     
-    .card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 15px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      border: 1px solid var(--border);
+    .status-badge { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; }
+    .status-paid { color: var(--green-text); }
+    .status-due { color: var(--red-text); }
+
+    /* Footer Branding */
+    .report-footer { margin-top: 30px; padding-top: 15px; border-top: 1px dashed var(--border); display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); }
+
+    .loading, .error-msg { text-align: center; padding: 50px 20px; font-weight: bold; }
+    .error-msg { color: var(--red-text); }
+
+    @media (max-width: 600px) {
+      .container { padding: 15px; }
+      .info-grid { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .brand-name { font-size: 1.3rem; }
     }
-
-    .header-card { text-align: center; border-top: 4px solid var(--accent); }
-    .customer-name { font-size: 1.4rem; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
-    .customer-phone { font-size: 0.9rem; color: var(--text-muted); }
-
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-    .stat-item { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
-    .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 5px; }
-    .stat-value { font-size: 0.95rem; font-weight: bold; }
-
-    .section-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; color: var(--primary); }
-
-    .month-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .month-item:last-child { border-bottom: none; }
-    
-    .month-date { font-weight: 500; font-size: 0.95rem; }
-    .month-details { font-size: 0.8rem; color: var(--text-muted); }
-    
-    .badge {
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: bold;
-    }
-    .badge-paid { background-color: #dcfce7; color: var(--paid); }
-    .badge-unpaid { background-color: #fee2e2; color: var(--unpaid); }
-
-    .error-msg { text-align: center; padding: 40px 20px; color: var(--unpaid); font-weight: bold; }
-    .loading { text-align: center; padding: 40px 20px; color: var(--text-muted); }
   </style>
 </head>
 <body>
 
   <div class="container" id="app">
-    <div class="loading" id="loadingState">جاري تحميل البيانات...</div>
+    <div class="loading">جاري تحميل تقرير الأقساط...</div>
   </div>
 
   <script>
-    // 1. إعدادات Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyC6nz1_dENnayngLi1iiq8KDOKQmbfwNDI",
       authDomain: "rashedshopv1.firebaseapp.com",
@@ -92,93 +110,167 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
     const appContainer = document.getElementById('app');
 
-    // 2. استخراج ID الزبون من الرابط
     const urlParams = new URLSearchParams(window.location.search);
     const customerId = urlParams.get('id');
 
-    // 3. جلب البيانات
     if (!customerId) {
-      appContainer.innerHTML = `<div class="card error-msg">الرابط غير صالح. يرجى التأكد من الرمز المستلم.</div>`;
+      appContainer.innerHTML = `<div class="error-msg">الرابط غير صحيح أو ناقص.</div>`;
     } else {
       fetchCustomerData(customerId);
     }
 
     function fetchCustomerData(id) {
-      // تم التعديل إلى المسار المباشر الصحيح: installments/customers/
       db.ref('installments/customers/' + id).once('value')
         .then(snapshot => {
           if (!snapshot.exists()) {
-            appContainer.innerHTML = `<div class="card error-msg">لم يتم العثور على حساب بهذا الرقم.</div>`;
+            appContainer.innerHTML = `<div class="error-msg">لم يتم العثور على حساب بهذا الرمز.</div>`;
             return;
           }
-          const data = snapshot.val();
-          renderCustomerPortal(data);
+          renderCustomerPortal(snapshot.val());
         })
         .catch(error => {
-          console.error('Firebase Error:', error);
-          appContainer.innerHTML = `<div class="card error-msg">حدث خطأ في الاتصال بقاعدة البيانات. حاول لاحقاً.</div>`;
+          console.error(error);
+          appContainer.innerHTML = `<div class="error-msg">حدث خطأ أثناء تحميل البيانات.</div>`;
         });
     }
 
-    // 4. عرض البيانات للزبون (قراءة فقط)
     function renderCustomerPortal(data) {
-      const totalAmount = Number(data.total_amount || 0);
-      const paidAmount = Number(data.paid_amount || 0);
+      // 1. استخراج وقراءة البيانات بمرونة لتجنب undefined
+      const name = data.name || data.customerName || 'غير محدد';
+      const phone = data.phone || data.customerPhone || 'غير محدد';
+      const address = data.address || data.location || 'الزبير - حي الشهداء';
+      
+      const itemName = data.itemName || data.item_name || data.item || 'غير محدد';
+      const buyDate = data.buyDate || data.buy_date || data.createdAt || data.date || '--';
+      const downPayment = Number(data.downPayment || data.down_payment || data.deposit || 0);
+
+      const totalAmount = Number(data.totalAmount || data.total_amount || data.total || 0);
+      const paidAmount = Number(data.paidAmount || data.paid_amount || data.paid || 0);
       const remainingAmount = totalAmount - paidAmount;
 
-      let monthsHtml = '';
-      if (data.months && Array.isArray(data.months) && data.months.length > 0) {
-        monthsHtml = data.months.map(m => {
-          const isPaid = m.status === 'paid';
-          const statusBadge = isPaid 
-            ? `<span class="badge badge-paid">واصل</span>` 
-            : `<span class="badge badge-unpaid">غير مدفوع</span>`;
-          
-          const payDateInfo = (isPaid && m.paid_at) 
-            ? `<br><small style="color:#16a34a">تاريخ الدفع: ${m.paid_at}</small>` 
-            : '';
+      const reportDate = new Date().toISOString().split('T')[0];
 
-          return `
-            <div class="month-item">
-              <div>
-                <div class="month-date">قسط شهر: ${m.due_date}</div>
-                <div class="month-details">المبلغ: ${Number(m.amount || 0).toLocaleString()} د.ع ${payDateInfo}</div>
-              </div>
-              <div>${statusBadge}</div>
-            </div>
-          `;
-        }).join('');
-      } else {
-        monthsHtml = '<div style="text-align:center; color:var(--text-muted); padding:10px;">لا توجد أقساط مسجلة.</div>';
+      // 2. تجهيز جدول الأقساط
+      let monthsList = [];
+      if (data.months) {
+        monthsList = Array.isArray(data.months) ? data.months : Object.values(data.months);
       }
 
+      let rowsHtml = '';
+
+      // سطر المقدمة إذا كانت موجودة
+      if (downPayment > 0) {
+        rowsHtml += `
+          <tr>
+            <td>--</td>
+            <td>${buyDate}</td>
+            <td>${buyDate}</td>
+            <td>المقدمة</td>
+            <td>${downPayment.toLocaleString()} د.ع</td>
+            <td class="status-badge status-paid">✓ مدفوع</td>
+          </tr>
+        `;
+      }
+
+      // أسطر الأقساط الشهرية
+      monthsList.forEach((m, idx) => {
+        const amount = Number(m.amount || 0);
+        const paid = Number(m.paid || m.paidAmount || (m.status === 'paid' ? amount : 0));
+        const dueDate = m.due_date || m.dueDate || m.date || '--';
+        const payDate = m.paid_at || m.paidAt || (m.status === 'paid' ? (m.date || '--') : '--');
+        const isPaid = m.status === 'paid' || paid >= amount;
+
+        const statusHtml = isPaid 
+          ? `<span class="status-badge status-paid">✓ مدفوع</span>` 
+          : `<span class="status-badge status-due">مستحق</span>`;
+
+        rowsHtml += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${dueDate}</td>
+            <td>${payDate}</td>
+            <td>${amount.toLocaleString()} د.ع</td>
+            <td>${paid.toLocaleString()} د.ع</td>
+            <td>${statusHtml}</td>
+          </tr>
+        `;
+      });
+
+      if (!rowsHtml) {
+        rowsHtml = `<tr><td colspan="6">لا توجد أقساط مسجلة.</td></tr>`;
+      }
+
+      // 3. طباعة الواجهة المطابقة للتصميم
       appContainer.innerHTML = `
-        <div class="card header-card">
-          <div class="customer-name">${data.name || 'غير محدد'}</div>
-          <div class="customer-phone">${data.phone || ''}</div>
-          
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="stat-label">المبلغ الكلي</div>
-              <div class="stat-value">${totalAmount.toLocaleString()}</div>
+        <div class="top-header">
+          <div class="report-date">
+            تاريخ التقرير
+            <strong>${reportDate}</strong>
+          </div>
+          <div class="brand-section">
+            <div class="brand-info">
+              <div class="brand-name">مركز الراشد</div>
+              <div class="brand-sub">لتصليح وبيع الأجهزة والأرصدة - الزبير حي الشهداء</div>
             </div>
-            <div class="stat-item">
-              <div class="stat-label">الواصل</div>
-              <div class="stat-value" style="color:var(--paid);">${paidAmount.toLocaleString()}</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">المتبقي</div>
-              <div class="stat-value" style="color:var(--unpaid);">${remainingAmount.toLocaleString()}</div>
-            </div>
+            <div class="brand-logo">5G</div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="section-title">جدول الأقساط وتواريخها</div>
-          <div>${monthsHtml}</div>
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="card-title">بيانات الزبون</div>
+            <div class="data-row"><span class="data-label">الاسم:</span><span class="data-val">${name}</span></div>
+            <div class="data-row"><span class="data-label">الهاتف:</span><span class="data-val">${phone}</span></div>
+            <div class="data-row"><span class="data-label">العنوان:</span><span class="data-val">${address}</span></div>
+          </div>
+
+          <div class="info-card">
+            <div class="card-title">بيانات العقد</div>
+            <div class="data-row"><span class="data-label">اسم المادة:</span><span class="data-val">${itemName}</span></div>
+            <div class="data-row"><span class="data-label">تاريخ الشراء:</span><span class="data-val">${buyDate}</span></div>
+            <div class="data-row"><span class="data-label">المقدمة:</span><span class="data-val">${downPayment.toLocaleString()} د.ع</span></div>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="sum-box blue">
+            <div class="sum-title">المبلغ الكلي</div>
+            <div class="sum-value">${totalAmount.toLocaleString()} د.ع</div>
+          </div>
+          <div class="sum-box green">
+            <div class="sum-title">المدفوع</div>
+            <div class="sum-value">${paidAmount.toLocaleString()} د.ع</div>
+          </div>
+          <div class="sum-box red">
+            <div class="sum-title">المتبقي</div>
+            <div class="sum-value">${remainingAmount.toLocaleString()} د.ع</div>
+          </div>
+        </div>
+
+        <div class="table-title">جدول الأقساط:</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>تاريخ الاستحقاق</th>
+                <th>تاريخ التسديد</th>
+                <th>المبلغ</th>
+                <th>المدفوع</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="report-footer">
+          <span>أقساط بلس - نظام إدارة الأقساط</span>
+          <span>نعتز بتقتكم بنا - مركز الراشد</span>
         </div>
       `;
     }
