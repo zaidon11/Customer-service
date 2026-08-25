@@ -74,8 +74,8 @@
     tr:nth-child(even) td { background-color: #f8fafc; }
     
     .status-badge { display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; }
-    .status-paid { color: var(--green-text); }
-    .status-due { color: var(--red-text); }
+    .status-paid { color: var(--green-text); background: var(--green-bg); }
+    .status-due { color: var(--red-text); background: var(--red-bg); }
 
     /* Footer Branding */
     .report-footer { margin-top: 30px; padding-top: 15px; border-top: 1px dashed var(--border); display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); }
@@ -122,9 +122,17 @@
     }
 
     function fetchCustomerData(id) {
-      db.ref('installments/customers/' + id).once('value')
+      // قراءة مسار الفايربيس الخاص بزبون محدد
+      db.ref('customers/' + id).once('value')
         .then(snapshot => {
           if (!snapshot.exists()) {
+            // محاولة مسار آخر في حال وجود عقدة أصلية
+            return db.ref('installments/customers/' + id).once('value');
+          }
+          return snapshot;
+        })
+        .then(snapshot => {
+          if (!snapshot || !snapshot.exists()) {
             appContainer.innerHTML = `<div class="error-msg">لم يتم العثور على حساب بهذا الرمز.</div>`;
             return;
           }
@@ -136,31 +144,40 @@
         });
     }
 
+    // تنسيق التاريخ من timestamp أو نص
+    function formatDate(dateVal) {
+      if (!dateVal || dateVal === '--') return '--';
+      if (typeof dateVal === 'number' || !isNaN(dateVal)) {
+        const d = new Date(Number(dateVal));
+        if (!isNaN(d.getTime())) {
+          return d.toISOString().split('T')[0];
+        }
+      }
+      return dateVal;
+    }
+
     function renderCustomerPortal(data) {
-      // 1. استخراج وقراءة البيانات بمرونة لتجنب undefined
-      const name = data.name || data.customerName || 'غير محدد';
-      const phone = data.phone || data.customerPhone || 'غير محدد';
-      const address = data.address || data.location || 'الزبير - حي الشهداء';
+      // قراءة البيانات بالأسماء الدقيقة من الفايربيس
+      const name = data.name || 'غير محدد';
+      const phone = data.phone || 'غير محدد';
+      const address = data.address || 'الزبير - حي الشهداء';
       
-      const itemName = data.itemName || data.item_name || data.item || 'غير محدد';
-      const buyDate = data.buyDate || data.buy_date || data.createdAt || data.date || '--';
-      const downPayment = Number(data.downPayment || data.down_payment || data.deposit || 0);
+      const itemName = data.model || 'غير محدد';
+      const buyDate = formatDate(data.purchaseDate);
+      const downPayment = Number(data.firstPay || 0);
 
-      const totalAmount = Number(data.totalAmount || data.total_amount || data.total || 0);
-      const paidAmount = Number(data.paidAmount || data.paid_amount || data.paid || 0);
-      const remainingAmount = totalAmount - paidAmount;
-
-      const reportDate = new Date().toISOString().split('T')[0];
-
-      // 2. تجهيز جدول الأقساط
+      const totalAmount = Number(data.total || 0);
+      
+      // حساب الأقساط
       let monthsList = [];
       if (data.months) {
         monthsList = Array.isArray(data.months) ? data.months : Object.values(data.months);
       }
 
+      let totalPaidFromMonths = 0;
       let rowsHtml = '';
 
-      // سطر المقدمة إذا كانت موجودة
+      // سطر المقدمة
       if (downPayment > 0) {
         rowsHtml += `
           <tr>
@@ -169,40 +186,51 @@
             <td>${buyDate}</td>
             <td>المقدمة</td>
             <td>${downPayment.toLocaleString()} د.ع</td>
-            <td class="status-badge status-paid">✓ مدفوع</td>
+            <td><span class="status-badge status-paid">✓ مدفوع</span></td>
           </tr>
         `;
       }
 
-      // أسطر الأقساط الشهرية
-      monthsList.forEach((m, idx) => {
-        const amount = Number(m.amount || 0);
-        const paid = Number(m.paid || m.paidAmount || (m.status === 'paid' ? amount : 0));
-        const dueDate = m.due_date || m.dueDate || m.date || '--';
-        const payDate = m.paid_at || m.paidAt || (m.status === 'paid' ? (m.date || '--') : '--');
-        const isPaid = m.status === 'paid' || paid >= amount;
+      // حساب جدول الأقساط
+      monthsList.forEach((m) => {
+        const reqAmount = Number(m.required || m.amount || 0);
+        const remAmount = Number(m.remaining !== undefined ? m.remaining : reqAmount);
+        const paidForThisMonth = reqAmount - remAmount;
+        
+        totalPaidFromMonths += paidForThisMonth;
 
-        const statusHtml = isPaid 
-          ? `<span class="status-badge status-paid">✓ مدفوع</span>` 
-          : `<span class="status-badge status-due">مستحق</span>`;
+        const dueDateFormatted = formatDate(m.dueDate);
+        const isPaid = (m.status && m.status.toLowerCase() === 'paid') || remAmount === 0;
+        const isPartiallyPaid = paidForThisMonth > 0 && remAmount > 0;
+
+        let statusHtml = '';
+        if (isPaid) {
+          statusHtml = `<span class="status-badge status-paid">✓ مدفوع</span>`;
+        } else if (isPartiallyPaid) {
+          statusHtml = `<span class="status-badge status-paid">جزئي</span>`;
+        } else {
+          statusHtml = `<span class="status-badge status-due">مستحق</span>`;
+        }
+
+        const payDateFormatted = isPaid ? (formatDate(m.paidAt) || dueDateFormatted) : '--';
 
         rowsHtml += `
           <tr>
-            <td>${idx + 1}</td>
-            <td>${dueDate}</td>
-            <td>${payDate}</td>
-            <td>${amount.toLocaleString()} د.ع</td>
-            <td>${paid.toLocaleString()} د.ع</td>
+            <td>${m.monthNumber || '--'}</td>
+            <td>${dueDateFormatted}</td>
+            <td>${payDateFormatted}</td>
+            <td>${reqAmount.toLocaleString()} د.ع</td>
+            <td>${paidForThisMonth.toLocaleString()} د.ع</td>
             <td>${statusHtml}</td>
           </tr>
         `;
       });
 
-      if (!rowsHtml) {
-        rowsHtml = `<tr><td colspan="6">لا توجد أقساط مسجلة.</td></tr>`;
-      }
+      const totalPaid = downPayment + totalPaidFromMonths;
+      const remainingAmount = totalAmount - totalPaid;
 
-      // 3. طباعة الواجهة المطابقة للتصميم
+      const reportDate = new Date().toISOString().split('T')[0];
+
       appContainer.innerHTML = `
         <div class="top-header">
           <div class="report-date">
@@ -241,7 +269,7 @@
           </div>
           <div class="sum-box green">
             <div class="sum-title">المدفوع</div>
-            <div class="sum-value">${paidAmount.toLocaleString()} د.ع</div>
+            <div class="sum-value">${totalPaid.toLocaleString()} د.ع</div>
           </div>
           <div class="sum-box red">
             <div class="sum-title">المتبقي</div>
