@@ -3,16 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1e293b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
   <title>كشف حساب الأقساط - مركز الراشد</title>
   
-  <!-- Google Fonts: Cairo (Arabic) & Roboto/Inter (English Numbers) -->
+  <!-- ربط ملف الـ Manifest للتطبيق -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Google Fonts: Cairo & Roboto -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Roboto:wght@500;700;900&display=swap" rel="stylesheet">
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK (Compat Version 9.23.0) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
   <style>
     :root {
@@ -44,7 +52,6 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* English numbers enforcement */
     .num {
       font-family: 'Roboto', 'Inter', system-ui, sans-serif !important;
       direction: ltr;
@@ -59,7 +66,38 @@
       padding: 18px; 
       border-radius: 20px; 
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); 
+      position: relative;
     }
+
+    /* شريط تثبيت التطبيق PWA Banner */
+    .install-banner {
+      position: fixed;
+      bottom: 15px;
+      left: 15px;
+      right: 15px;
+      max-width: 770px;
+      margin: 0 auto;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 14px 18px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      z-index: 9999;
+      animation: slideUp 0.4s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .install-banner-text { font-size: 0.88rem; font-weight: 700; }
+    .install-banner-btns { display: flex; gap: 8px; align-items: center; }
+    .btn-install { background: #2563eb; color: #fff; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 800; font-family: 'Cairo'; cursor: pointer; }
+    .btn-close-banner { background: transparent; color: #94a3b8; border: none; font-size: 1.2rem; cursor: pointer; padding: 0 6px; }
 
     /* Top Brand Header */
     .header {
@@ -86,6 +124,21 @@
       box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
       flex-shrink: 0;
     }
+
+    /* حالة التوصيل بالإشعارات */
+    .notif-bar {
+      margin-bottom: 15px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .notif-bar.active { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .notif-bar.inactive { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .btn-enable-notif { background: #b45309; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 700; font-family: 'Cairo'; }
 
     /* Summary Dashboard Cards */
     .summary-grid {
@@ -127,7 +180,7 @@
       margin-bottom: 10px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: space-between;
     }
     .info-row {
       display: flex;
@@ -140,7 +193,6 @@
     .lbl { color: var(--text-muted); font-weight: 600; }
     .val { font-weight: 700; color: var(--text-main); text-align: left; }
 
-    /* Section Title */
     .section-header {
       font-size: 1.1rem;
       font-weight: 800;
@@ -151,7 +203,6 @@
       justify-content: space-between;
     }
 
-    /* Mobile First Installment Cards View */
     .mobile-list { display: flex; flex-direction: column; gap: 10px; }
     
     .install-card {
@@ -164,18 +215,9 @@
       align-items: center;
       box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
-    .install-card.is-paid {
-      border-right: 6px solid var(--paid-text);
-      background: #f0fdf4;
-    }
-    .install-card.is-due {
-      border-right: 6px solid var(--due-text);
-      background: #fff;
-    }
-    .install-card.is-deposit {
-      border-right: 6px solid #3b82f6;
-      background: #f0f9ff;
-    }
+    .install-card.is-paid { border-right: 6px solid var(--paid-text); background: #f0fdf4; }
+    .install-card.is-due { border-right: 6px solid var(--due-text); background: #fff; }
+    .install-card.is-deposit { border-right: 6px solid #3b82f6; background: #f0f9ff; }
 
     .card-right { display: flex; flex-direction: column; gap: 4px; }
     .card-title-text { font-size: 0.95rem; font-weight: 800; color: var(--text-main); }
@@ -195,10 +237,54 @@
     .badge-status.due { background: var(--due-bg); color: var(--due-text); border: 1px solid var(--due-border); }
     .badge-status.deposit { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
 
-    /* Desktop Table View (Hidden on Mobile) */
     .desktop-table { display: none; }
 
-    /* Footer Branding */
+    /* شاشة إدخال رقم الحساب عند عدم توفر الـ ID */
+    .login-box {
+      text-align: center;
+      padding: 30px 15px;
+    }
+    .login-box h2 { font-weight: 900; color: var(--brand-blue); margin-bottom: 8px; }
+    .login-box p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px; font-weight: 600; }
+    .login-input {
+      width: 100%;
+      max-width: 320px;
+      padding: 12px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 1.1rem;
+      text-align: center;
+      font-family: 'Roboto', sans-serif;
+      font-weight: 700;
+      margin-bottom: 15px;
+      outline: none;
+    }
+    .login-input:focus { border-color: var(--brand-blue); }
+    .btn-login {
+      background: var(--brand-blue);
+      color: #fff;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 800;
+      font-family: 'Cairo';
+      cursor: pointer;
+      width: 100%;
+      max-width: 320px;
+    }
+    .btn-logout {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'Cairo';
+      cursor: pointer;
+    }
+
     .footer {
       margin-top: 25px;
       padding-top: 15px;
@@ -212,7 +298,6 @@
     .loading, .error-msg { text-align: center; padding: 40px 10px; font-weight: 800; font-size: 1.1rem; }
     .error-msg { color: var(--due-text); }
 
-    /* Desktop Styles Override */
     @media (min-width: 640px) {
       body { padding: 25px; }
       .container { padding: 25px; }
@@ -234,6 +319,15 @@
 </head>
 <body>
 
+  <!-- بنر تثبيت التطبيق -->
+  <div id="pwa-install-banner" class="install-banner" style="display: none;">
+    <div class="install-banner-text">📲 احفظ التطبيق على هاتفك للوصول السريع واستلام الإشعارات!</div>
+    <div class="install-banner-btns">
+      <button id="btn-install-app" class="btn-install">تثبيت</button>
+      <button id="btn-close-banner" class="btn-close-banner">✕</button>
+    </div>
+  </div>
+
   <div class="container" id="app">
     <div class="loading">جاري تحضير كشف الحساب...</div>
   </div>
@@ -253,34 +347,152 @@
     const db = firebase.database();
     const appContainer = document.getElementById('app');
 
+    // 1. إدارة جلسة معرف الزبون (LocalStorage & URL)
     const urlParams = new URLSearchParams(window.location.search);
-    const customerId = urlParams.get('id');
+    let customerId = urlParams.get('id');
+
+    if (customerId) {
+      localStorage.setItem('alrashed_cust_id', customerId);
+    } else {
+      customerId = localStorage.getItem('alrashed_cust_id');
+    }
 
     if (!customerId) {
-      appContainer.innerHTML = `<div class="error-msg">الرابط غير صحيح أو انتهت صلاحيته.</div>`;
+      renderLoginScreen();
     } else {
       fetchCustomerData(customerId);
     }
 
+    function renderLoginScreen() {
+      appContainer.innerHTML = `
+        <div class="header">
+          <div>
+            <div class="brand-title">مركز الراشد</div>
+            <div class="brand-sub">نظام كشف أقساط الأجهزة</div>
+          </div>
+          <div class="logo-badge">5G</div>
+        </div>
+        <div class="login-box">
+          <h2>تسجيل الدخول إلى حسابك</h2>
+          <p>يرجى إدخال رمز الحساب الخاص بك لمتابعة أقساطك:</p>
+          <input type="text" id="cust-id-input" class="login-input" placeholder="مثال: cust_1787425280099">
+          <br>
+          <button class="btn-login" onclick="handleManualLogin()">دخول للحساب</button>
+        </div>
+      `;
+    }
+
+    function handleManualLogin() {
+      const inputVal = document.getElementById('cust-id-input').value.trim();
+      if (!inputVal) {
+        alert('يرجى كتابة رمز الحساب أولاً');
+        return;
+      }
+      localStorage.setItem('alrashed_cust_id', inputVal);
+      customerId = inputVal;
+      appContainer.innerHTML = `<div class="loading">جاري تحضير كشف الحساب...</div>`;
+      fetchCustomerData(customerId);
+    }
+
+    function handleLogout() {
+      if (confirm('هل أنت تأكد من الخروج من هذا الحساب؟')) {
+        localStorage.removeItem('alrashed_cust_id');
+        window.location.href = window.location.pathname;
+      }
+    }
+
+    // 2. جلب البيانات وتحديث التوكن
+    let detectedNodePath = '';
+
     function fetchCustomerData(id) {
       db.ref('customers/' + id).once('value')
         .then(snapshot => {
-          if (!snapshot.exists()) {
-            return db.ref('installments/customers/' + id).once('value');
+          if (snapshot.exists()) {
+            detectedNodePath = 'customers/' + id;
+            return snapshot;
           }
-          return snapshot;
+          detectedNodePath = 'installments/customers/' + id;
+          return db.ref(detectedNodePath).once('value');
         })
         .then(snapshot => {
           if (!snapshot || !snapshot.exists()) {
-            appContainer.innerHTML = `<div class="error-msg">عذراً، لم يتم العثور على حساب بهذا الرمز.</div>`;
+            appContainer.innerHTML = `
+              <div class="error-msg">
+                عذراً، لم يتم العثور على حساب بهذا الرمز.
+                <br><br>
+                <button class="btn-logout" onclick="handleLogout()">إعادة المحاولة</button>
+              </div>`;
             return;
           }
-          renderCustomerPortal(snapshot.val());
+          renderCustomerPortal(snapshot.val(), id);
+          setupNotifications(id, detectedNodePath);
         })
         .catch(error => {
           console.error(error);
           appContainer.innerHTML = `<div class="error-msg">حدث خطأ أثناء تحميل البيانات، يرجى المحاولة لاحقاً.</div>`;
         });
+    }
+
+    // 3. إعداد إشعارات الهاتف (FCM)
+    async function setupNotifications(id, nodePath) {
+      if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+
+      try {
+        const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+        const messaging = firebase.messaging();
+
+        if (Notification.permission === 'granted') {
+          saveToken(messaging, reg, id, nodePath);
+        } else if (Notification.permission !== 'denied') {
+          // طلب الإذن تلقائياً
+          const perm = await Notification.requestPermission();
+          if (perm === 'granted') {
+            saveToken(messaging, reg, id, nodePath);
+          }
+        }
+      } catch (err) {
+        console.error('Service Worker / FCM Error:', err);
+      }
+    }
+
+    async function requestNotifPermission() {
+      if (!('serviceWorker' in navigator)) return;
+      const reg = await navigator.serviceWorker.ready;
+      const messaging = firebase.messaging();
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        saveToken(messaging, reg, customerId, detectedNodePath);
+      }
+    }
+
+    async function saveToken(messaging, reg, id, nodePath) {
+      try {
+        const token = await messaging.getToken({ serviceWorkerRegistration: reg });
+        if (token) {
+          const updates = {};
+          updates[nodePath + '/fcmToken'] = token;
+          updates[nodePath + '/tokenUpdatedAt'] = Date.now();
+          await db.ref().update(updates);
+          updateNotifUI(true);
+        }
+      } catch (err) {
+        console.error('Failed to get FCM token:', err);
+      }
+    }
+
+    function updateNotifUI(isOnline) {
+      const notifEl = document.getElementById('notif-status-box');
+      if (!notifEl) return;
+      if (isOnline) {
+        notifEl.className = 'notif-bar active';
+        notifEl.innerHTML = `<span>🔔 الإشعارات مفعلة على هذا الهاتف</span> <span>متصل</span>`;
+      } else {
+        notifEl.className = 'notif-bar inactive';
+        notifEl.innerHTML = `
+          <span>🔕 الإشعارات متوقفة</span>
+          <button class="btn-enable-notif" onclick="requestNotifPermission()">تفعيل الآن</button>
+        `;
+      }
     }
 
     function formatDate(dateVal) {
@@ -294,7 +506,8 @@
       return dateVal;
     }
 
-    function renderCustomerPortal(data) {
+    // 4. بناء واجهة كشف الحساب
+    function renderCustomerPortal(data, id) {
       const name = data.name || 'غير محدد';
       const phone = data.phone || 'غير محدد';
       const address = data.address || 'الزبير - حي الشهداء';
@@ -314,7 +527,6 @@
       let mobileCardsHtml = '';
       let desktopRowsHtml = '';
 
-      // 1. إضافة المقدمة (سواء للجوال أو للحاسبة)
       if (downPayment > 0) {
         mobileCardsHtml += `
           <div class="install-card is-deposit">
@@ -341,7 +553,6 @@
         `;
       }
 
-      // 2. معالجة باقي الأقساط
       monthsList.forEach((m) => {
         const reqAmount = Number(m.required || m.amount || 0);
         const remAmount = Number(m.remaining !== undefined ? m.remaining : reqAmount);
@@ -373,7 +584,6 @@
 
         const payDateFormatted = isPaid ? (formatDate(m.paidAt) || dueDateFormatted) : '--';
 
-        // بطاقة الجوال
         mobileCardsHtml += `
           <div class="install-card ${cardClass}">
             <div class="card-right">
@@ -387,7 +597,6 @@
           </div>
         `;
 
-        // سطر الجدول للحاسبة
         desktopRowsHtml += `
           <tr>
             <td><span class="num">${m.monthNumber || '--'}</span></td>
@@ -402,18 +611,27 @@
 
       const totalPaid = downPayment + totalPaidFromMonths;
       const remainingAmount = totalAmount - totalPaid;
+      const hasToken = !!data.fcmToken;
 
       appContainer.innerHTML = `
-        <!-- الهيدر العلوي -->
         <div class="header">
           <div>
             <div class="brand-title">مركز الراشد</div>
             <div class="brand-sub">لتصليح وبيع الأجهزة والأرصدة - الزبير حي الشهداء</div>
           </div>
-          <div class="logo-badge">5G</div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+            <div class="logo-badge">5G</div>
+            <button class="btn-logout" onclick="handleLogout()">تسجيل الخروج</button>
+          </div>
         </div>
 
-        <!-- ملخص المبالغ (ثلاثية أزرار شاشة الجوال) -->
+        <div id="notif-status-box" class="notif-bar ${hasToken ? 'active' : 'inactive'}">
+          ${hasToken 
+            ? `<span>🔔 الإشعارات مفعلة على هذا الهاتف</span> <span>متصل</span>` 
+            : `<span>🔕 الإشعارات غير مفعلة</span> <button class="btn-enable-notif" onclick="requestNotifPermission()">تفعيل الآن</button>`
+          }
+        </div>
+
         <div class="summary-grid">
           <div class="sum-card total">
             <div class="sum-label">المبلغ الكلي</div>
@@ -429,7 +647,6 @@
           </div>
         </div>
 
-        <!-- بيانات العقد والزبون -->
         <div class="info-grid">
           <div class="info-box">
             <div class="box-head">👤 بيانات الزبون</div>
@@ -446,17 +663,14 @@
           </div>
         </div>
 
-        <!-- عنوان قائمة الأقساط -->
         <div class="section-header">
           <span>جدول الأقساط والشداد:</span>
         </div>
 
-        <!-- عرض الجوال (بطاقات واضحة) -->
         <div class="mobile-list">
           ${mobileCardsHtml}
         </div>
 
-        <!-- عرض الحاسبة (جدول منظم) -->
         <table class="desktop-table">
           <thead>
             <tr>
@@ -473,12 +687,38 @@
           </tbody>
         </table>
 
-        <!-- حقوق الأسفل -->
         <div class="footer">
           نظام إدارة الأقساط الخاص بـ مركز الراشد
         </div>
       `;
     }
+
+    // 5. التحكم ببنر التثبيت التلقائي بعد 5 ثوانٍ
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      setTimeout(() => {
+        const banner = document.getElementById('pwa-install-banner');
+        if (banner && deferredPrompt) {
+          banner.style.display = 'flex';
+        }
+      }, 5000);
+    });
+
+    document.getElementById('btn-install-app')?.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        document.getElementById('pwa-install-banner').style.display = 'none';
+      }
+    });
+
+    document.getElementById('btn-close-banner')?.addEventListener('click', () => {
+      document.getElementById('pwa-install-banner').style.display = 'none';
+    });
   </script>
 </body>
 </html>
