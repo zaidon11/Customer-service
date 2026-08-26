@@ -345,7 +345,17 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const messaging = firebase.messaging();
     const appContainer = document.getElementById('app');
+
+    messaging.onMessage((payload) => {
+      console.log('FCM foreground message:', payload);
+      const title = payload?.notification?.title || 'مركز الراشد';
+      const body = payload?.notification?.body || '';
+      if (Notification.permission === 'granted') {
+        new Notification(title, { body, icon: payload?.notification?.icon || 'https://cdn-icons-png.flaticon.com/512/597/597177.png' });
+      }
+    });
 
     // 1. إدارة جلسة معرف الزبون (LocalStorage & URL)
     const urlParams = new URLSearchParams(window.location.search);
@@ -434,24 +444,28 @@
     }
 
     // 3. إعداد إشعارات الهاتف (FCM)
+    const VAPID_PUBLIC_KEY = 'BPrLGfZpFfaqDd-h_tV_URiW9112Y4IopydfVzbbWJtjDTjmi1PsHnD6IQapVg11zf9ZUzPV2FyhZZghpQYLyCY';
+
     async function setupNotifications(id, nodePath) {
-      if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+      if (!('serviceWorker' in navigator) || !('Notification' in window)) {
+        updateNotifUI(false, 'هذا المتصفح لا يدعم إشعارات الويب');
+        return;
+      }
 
       try {
         const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
-        const messaging = firebase.messaging();
+        await navigator.serviceWorker.ready;
 
         if (Notification.permission === 'granted') {
-          saveToken(messaging, reg, id, nodePath);
-        } else if (Notification.permission !== 'denied') {
-          // طلب الإذن تلقائياً
-          const perm = await Notification.requestPermission();
-          if (perm === 'granted') {
-            saveToken(messaging, reg, id, nodePath);
-          }
+          await saveToken(firebase.messaging(), reg, id, nodePath);
+        } else if (Notification.permission === 'denied') {
+          updateNotifUI(false, 'الإشعارات محظورة من إعدادات المتصفح');
+        } else {
+          updateNotifUI(false, 'الإشعارات غير مفعلة');
         }
       } catch (err) {
         console.error('Service Worker / FCM Error:', err);
+        updateNotifUI(false, 'تعذر تجهيز الإشعارات');
       }
     }
 
@@ -459,15 +473,25 @@
       if (!('serviceWorker' in navigator)) return;
       const reg = await navigator.serviceWorker.ready;
       const messaging = firebase.messaging();
-      const perm = await Notification.requestPermission();
-      if (perm === 'granted') {
-        saveToken(messaging, reg, customerId, detectedNodePath);
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          await saveToken(messaging, reg, customerId, detectedNodePath);
+        } else {
+          updateNotifUI(false, perm === 'denied' ? 'الإشعارات محظورة من إعدادات المتصفح' : 'لم يتم السماح بالإشعارات');
+        }
+      } catch (err) {
+        console.error('Notification permission error:', err);
+        updateNotifUI(false, 'تعذر طلب إذن الإشعارات');
       }
     }
 
     async function saveToken(messaging, reg, id, nodePath) {
       try {
-        const token = await messaging.getToken({ serviceWorkerRegistration: reg });
+        const token = await messaging.getToken({
+          vapidKey: VAPID_PUBLIC_KEY,
+          serviceWorkerRegistration: reg
+        });
         if (token) {
           const updates = {};
           updates[nodePath + '/fcmToken'] = token;
@@ -480,7 +504,7 @@
       }
     }
 
-    function updateNotifUI(isOnline) {
+    function updateNotifUI(isOnline, message = '') {
       const notifEl = document.getElementById('notif-status-box');
       if (!notifEl) return;
       if (isOnline) {
@@ -489,7 +513,7 @@
       } else {
         notifEl.className = 'notif-bar inactive';
         notifEl.innerHTML = `
-          <span>🔕 الإشعارات متوقفة</span>
+          <span>🔕 ${message || 'الإشعارات متوقفة'}</span>
           <button class="btn-enable-notif" onclick="requestNotifPermission()">تفعيل الآن</button>
         `;
       }
@@ -722,3 +746,4 @@
   </script>
 </body>
 </html>
+
